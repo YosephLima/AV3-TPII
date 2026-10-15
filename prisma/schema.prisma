@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Papel {
+  DIRETOR
+  DIRETOR_FOTOGRAFIA
+  SONOPLASTA
+  EDITOR
+  ROTEIRISTA
+  EFEITOS_VISUAIS
+}
+
+model Profissional {
+  id                 String        @id
+  nome               String
+  especialidades     Papel[]
+  precoMedio         Float
+  disponivelDe       DateTime
+  disponivelAte      DateTime
+  localizacao        String
+  projetosAnteriores String[]      @default([])
+  competencias       Competencia[]
+  avaliacoes         Avaliacao[]
+}
+
+model Competencia {
+  id             Int          @id @default(autoincrement())
+  nome           String
+  nivel          Int
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+
+  @@unique([profissionalId, nome])
+}
+
+model Avaliacao {
+  id             Int          @id @default(autoincrement())
+  nota           Float
+  comentario     String       @default("")
+  data           DateTime
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+}

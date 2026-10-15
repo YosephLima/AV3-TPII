@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: cinebridge
+      POSTGRES_PASSWORD: cinebridge
+      POSTGRES_DB: cinebridge
+    ports:
+      - "5433:5432"
+    volumes:
+      - dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cinebridge -d cinebridge"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: .
+    image: cinebridge-recomendacao:av1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://cinebridge:cinebridge@postgres:5432/cinebridge
+    command: ["sh", "-c", "npm run db:preparar && npm start"]
+
+volumes:
+  dados:

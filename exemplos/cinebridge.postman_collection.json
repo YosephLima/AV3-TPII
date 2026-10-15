@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "cinebridge AV1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Saúde",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/saude",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "saude"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Profissionais",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/profissionais",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "profissionais"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Recomendação: documentário",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Vozes do Sertão\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"genero\": \"drama social\",\n  \"duracao\": 90,\n  \"tipoCaptacao\": \"documentario\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 5,\n      \"competencias\": [\n        {\n          \"nome\": \"documentario\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"narrativa\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"DIRETOR_FOTOGRAFIA\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"camera\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"SONOPLASTA\",\n      \"peso\": 2,\n      \"competencias\": [\n        {\n          \"nome\": \"captacao de som\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"montagem\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"ROTEIRISTA\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"pesquisa\",\n          \"nivel\": 9\n        }\n      ]\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Recomendação: estratégia escolhida (orçamento)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Vozes do Sertão\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"genero\": \"drama social\",\n  \"duracao\": 90,\n  \"tipoCaptacao\": \"documentario\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 5,\n      \"competencias\": [\n        {\n          \"nome\": \"documentario\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"narrativa\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"DIRETOR_FOTOGRAFIA\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"camera\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"SONOPLASTA\",\n      \"peso\": 2,\n      \"competencias\": [\n        {\n          \"nome\": \"captacao de som\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"montagem\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"ROTEIRISTA\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"pesquisa\",\n          \"nivel\": 9\n        }\n      ]\n    }\n  ],\n  \"estrategia\": \"orcamento\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Erro 422: animação sem efeitos visuais",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Animação sem efeitos visuais\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"genero\": \"drama social\",\n  \"duracao\": 90,\n  \"tipoCaptacao\": \"animacao\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 5,\n      \"competencias\": [\n        {\n          \"nome\": \"documentario\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"narrativa\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"DIRETOR_FOTOGRAFIA\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"camera\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"SONOPLASTA\",\n      \"peso\": 2,\n      \"competencias\": [\n        {\n          \"nome\": \"captacao de som\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"montagem\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"ROTEIRISTA\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"pesquisa\",\n          \"nivel\": 9\n        }\n      ]\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
