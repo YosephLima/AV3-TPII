@@ -1,16 +1,21 @@
 import type { Profissional } from '../dominio/Profissional';
 import type { Projeto } from '../dominio/Projeto';
 import { CalculadorCompatibilidade } from './CalculadorCompatibilidade';
-import { ValidadorConsistencia } from './ValidadorConsistencia';
+import { ValidadorConsistencia, type ValidadorProjeto } from './ValidadorConsistencia';
 import type { VisitanteProjeto } from './VisitanteProjeto';
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
+export const formatarMoeda = (valor: number): string => moeda.format(valor);
+
 export class GeradorRelatorio implements VisitanteProjeto<string> {
+  constructor(private readonly validador: ValidadorProjeto = new ValidadorConsistencia()) {}
+
   visitarProjeto(projeto: Projeto): string {
     const linhas = [
-      `Projeto: ${projeto.nome} (${projeto.tipoCaptacao}, ${projeto.genero}, ${projeto.duracao} min)`,
-      `Orçamento: ${moeda.format(projeto.orcamento)} | Entrega: ${projeto.prazo.toISOString().slice(0, 10)} | Local: ${projeto.restricoes.localizacao}`,
+      `Projeto: ${projeto.nome} (${projeto.tipo}, ${projeto.genero}, ${projeto.duracao} min)`,
+      `Orçamento: ${formatarMoeda(projeto.orcamento)} | Entrega: ${projeto.prazo.toISOString().slice(0, 10)} | Local: ${projeto.restricoes.localizacao}`,
+      ...this.linhasDoTipo(projeto),
     ];
 
     const equipe = projeto.equipe;
@@ -24,17 +29,21 @@ export class GeradorRelatorio implements VisitanteProjeto<string> {
       linhas.push(`  - ${papel} (peso ${peso}): ${descricao}${confirmado}`);
     }
 
-    const validador = new ValidadorConsistencia();
-    const consistente = projeto.aceitar(validador);
+    const consistente = projeto.aceitar(this.validador);
     const compatibilidade = projeto.aceitar(new CalculadorCompatibilidade());
-    linhas.push(`Custo total: ${moeda.format(equipe.custoTotal())}`);
+    linhas.push(`Custo total: ${formatarMoeda(equipe.custoTotal())}`);
     linhas.push(`Compatibilidade geral: ${(compatibilidade * 100).toFixed(1)}%`);
-    linhas.push(consistente ? 'Consistência: ok' : `Consistência: ${validador.erros.join('; ')}`);
+    linhas.push(consistente ? 'Consistência: ok' : `Consistência: ${this.validador.erros.join('; ')}`);
     return linhas.join('\n');
   }
 
   visitarProfissional(profissional: Profissional): string {
     const nota = profissional.avaliacoes.length > 0 ? profissional.notaMedia().toFixed(1) : 'sem avaliações';
-    return `${profissional.nome}, ${moeda.format(profissional.precoMedio)}, nota ${nota}, ${profissional.localizacao}`;
+    return `${profissional.nome}, ${formatarMoeda(profissional.precoMedio)}, nota ${nota}, ${profissional.localizacao}`;
+  }
+
+  /** Cada família pode acrescentar linhas próprias. */
+  protected linhasDoTipo(_projeto: Projeto): string[] {
+    return [];
   }
 }

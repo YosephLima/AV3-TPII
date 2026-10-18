@@ -1,17 +1,12 @@
 {
+  "tipo": "documentario",
   "nome": "Vozes do Sertão",
   "produtor": "produtora@exemplo.com",
-  "genero": "drama social",
-  "duracao": 90,
-  "tipoCaptacao": "documentario",
   "orcamento": 120000,
   "prazo": "2027-03-30",
   "localizacao": "Recife",
-  "papeis": [
-    { "papel": "DIRETOR", "peso": 5, "competencias": [{ "nome": "documentario", "nivel": 9 }, { "nome": "narrativa", "nivel": 8 }] },
-    { "papel": "DIRETOR_FOTOGRAFIA", "peso": 3, "competencias": [{ "nome": "camera", "nivel": 8 }] },
-    { "papel": "SONOPLASTA", "peso": 2, "competencias": [{ "nome": "captacao de som", "nivel": 8 }] },
-    { "papel": "EDITOR", "peso": 3, "competencias": [{ "nome": "montagem", "nivel": 8 }] },
-    { "papel": "ROTEIRISTA", "peso": 4, "competencias": [{ "nome": "pesquisa", "nivel": 9 }] }
-  ]
+  "detalhes": {
+    "tema": "Migração no sertão nordestino",
+    "entrevistados": ["Dona Socorro", "Seu Antônio"]
+  }
 }

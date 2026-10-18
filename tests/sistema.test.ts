@@ -11,15 +11,14 @@ describe('SistemaRecomendacao', () => {
   describe('escolha da estratégia', () => {
     const { sistema } = sistemaDeTeste();
 
-    it('é automática pelo tipo de captação e pelo orçamento', () => {
-      const baixo = { orcamento: 40_000, prazo: PRAZO, localizacao: 'SP' };
-      expect(sistema.estrategiaPara(criarProjeto({ tipoCaptacao: 'documentario' })).nome).toBe('colaborativa');
-      expect(sistema.estrategiaPara(criarProjeto({ tipoCaptacao: 'ficcao' })).nome).toBe('cosseno');
-      expect(sistema.estrategiaPara(criarProjeto({ tipoCaptacao: 'animacao' })).nome).toBe('cosseno');
-      expect(sistema.estrategiaPara(criarProjeto({ restricoes: baixo })).nome).toBe('orcamento');
+    it('sem escolha explícita, vem da família do projeto', () => {
+      expect(sistema.estrategiaPara(criarProjeto({}, 'documentario')).nome).toBe('documentario');
+      expect(sistema.estrategiaPara(criarProjeto({}, 'animacao')).nome).toBe('animacao');
+      expect(sistema.estrategiaPara(criarProjeto({}, 'publicitario')).nome).toBe('publicitario');
+      expect(sistema.estrategiaPara(criarProjeto({}, 'ficcao')).nome).toBe('cosseno');
     });
 
-    it('a escolhida na criação do projeto vence a padrão do sistema, que vence a automática', () => {
+    it('a escolhida na criação do projeto vence a padrão do sistema, que vence a da família', () => {
       const { sistema: outro } = sistemaDeTeste();
       outro.definirEstrategia(new SimilaridadeCosseno());
       expect(outro.estrategiaPara(criarProjeto()).nome).toBe('cosseno');
@@ -90,7 +89,7 @@ describe('SistemaRecomendacao', () => {
     expect(emails.at(-1)?.assunto).toContain('Equipe formada');
   });
 
-  it('mudança grande de orçamento pede reavaliação completa com outra estratégia', async () => {
+  it('mudança grande de orçamento pede reavaliação completa, e a nova equipe cabe no orçamento', async () => {
     const { sistema, linhasAuditoria } = sistemaDeTeste();
     const projeto = criarProjeto();
     const anterior = await sistema.executarRecomendacao(projeto);
@@ -100,7 +99,6 @@ describe('SistemaRecomendacao', () => {
 
     expect(anterior.status).toBe('descartada');
     expect(nova).not.toBe(anterior);
-    expect(sistema.estrategiaPara(projeto).nome).toBe('orcamento');
     expect(nova.custoTotal()).toBeLessThanOrEqual(40_000);
     expect(eventos(linhasAuditoria)).toEqual(['recomendacao_gerada', 'reavaliacao_solicitada', 'recomendacao_gerada']);
   });

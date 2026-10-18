@@ -1,0 +1,7 @@
+{
+  "tipo": "publicitario",
+  "modelo": "digital",
+  "nome": "Lançamento de verão",
+  "produtor": "agencia@exemplo.com",
+  "detalhes": { "cliente": "Café Aurora" }
+}

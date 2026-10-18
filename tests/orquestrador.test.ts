@@ -6,6 +6,9 @@ import type { Profissional } from '../src/dominio/Profissional';
 import type { Projeto } from '../src/dominio/Projeto';
 import type { RecomendacaoStrategy } from '../src/estrategias/RecomendacaoStrategy';
 import { SimilaridadeCosseno } from '../src/estrategias/SimilaridadeCosseno';
+import { FabricaAnimacao } from '../src/fabricas/animacao/FabricaAnimacao';
+import { FabricaDocumentario } from '../src/fabricas/documentario/FabricaDocumentario';
+import { FabricaFiccao } from '../src/fabricas/ficcao/FabricaFiccao';
 import { OrquestradorEquipe, ProjetoInvalidoError } from '../src/orquestracao/OrquestradorEquipe';
 import { OrquestradorPadrao } from '../src/orquestracao/OrquestradorPadrao';
 import { RepositorioProfissionaisMemoria } from '../src/repositorio/RepositorioProfissionais';
@@ -18,7 +21,7 @@ class OrquestradorEspiao extends OrquestradorEquipe {
   readonly passos: string[] = [];
 
   constructor(private readonly valido = true) {
-    super(repositorio());
+    super(new FabricaFiccao(), repositorio());
   }
 
   protected validarRestricoes(): boolean {
@@ -63,7 +66,7 @@ describe('Template Method', () => {
   });
 
   it('pode restringir a rodada a alguns papéis e excluir profissionais', async () => {
-    const orquestrador = new OrquestradorPadrao(repositorio());
+    const orquestrador = new OrquestradorPadrao(new FabricaDocumentario(), repositorio());
     const equipe = await orquestrador.orquestrar(criarProjeto(), new SimilaridadeCosseno(), {
       papeis: [Papel.SONOPLASTA],
       excluir: ['p07'],
@@ -74,11 +77,23 @@ describe('Template Method', () => {
 });
 
 describe('OrquestradorPadrao', () => {
-  const orquestrador = new OrquestradorPadrao(repositorio());
+  const orquestrador = new OrquestradorPadrao(new FabricaDocumentario(), repositorio());
 
-  it('recusa animação sem especialista em efeitos visuais', async () => {
-    const animacao = criarProjeto({ tipoCaptacao: 'animacao' });
-    await expect(orquestrador.orquestrar(animacao, new SimilaridadeCosseno())).rejects.toThrow(ProjetoInvalidoError);
+  it('valida com o validador da família recebida e informa os motivos', async () => {
+    const deAnimacao = new OrquestradorPadrao(new FabricaAnimacao(), repositorio());
+    const semVfx = criarProjeto({}, 'animacao');
+
+    const erro = await deAnimacao.orquestrar(semVfx).catch((e: unknown) => e);
+    expect(erro).toBeInstanceOf(ProjetoInvalidoError);
+    expect((erro as ProjetoInvalidoError).motivos).toEqual(['Animação exige especialista em efeitos visuais']);
+  });
+
+  it('sem estratégia explícita, usa o recomendador da família', async () => {
+    const espia: string[] = [];
+    const fabrica = new FabricaDocumentario();
+    fabrica.criarRecomendador = () => estrategiaEspia(espia);
+    await new OrquestradorPadrao(fabrica, repositorio()).orquestrar(criarProjeto());
+    expect(espia).toEqual(['recomendar']);
   });
 
   it('recusa orçamento zerado ou papel sem peso', async () => {

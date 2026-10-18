@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "cinebridge AV1",
+    "name": "cinebridge AV2",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -43,6 +43,22 @@
       }
     },
     {
+      "name": "Modelos por tipo",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/modelos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "modelos"
+          ]
+        }
+      }
+    },
+    {
       "name": "Recomendação: documentário",
       "request": {
         "method": "POST",
@@ -63,7 +79,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nome\": \"Vozes do Sertão\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"genero\": \"drama social\",\n  \"duracao\": 90,\n  \"tipoCaptacao\": \"documentario\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 5,\n      \"competencias\": [\n        {\n          \"nome\": \"documentario\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"narrativa\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"DIRETOR_FOTOGRAFIA\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"camera\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"SONOPLASTA\",\n      \"peso\": 2,\n      \"competencias\": [\n        {\n          \"nome\": \"captacao de som\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"montagem\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"ROTEIRISTA\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"pesquisa\",\n          \"nivel\": 9\n        }\n      ]\n    }\n  ]\n}",
+          "raw": "{\n  \"tipo\": \"documentario\",\n  \"nome\": \"Vozes do Sertão\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"detalhes\": {\n    \"tema\": \"Migração no sertão nordestino\",\n    \"entrevistados\": [\n      \"Dona Socorro\",\n      \"Seu Antônio\"\n    ]\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -73,7 +89,7 @@
       }
     },
     {
-      "name": "Recomendação: estratégia escolhida (orçamento)",
+      "name": "Recomendação: animação",
       "request": {
         "method": "POST",
         "header": [
@@ -93,7 +109,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nome\": \"Vozes do Sertão\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"genero\": \"drama social\",\n  \"duracao\": 90,\n  \"tipoCaptacao\": \"documentario\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 5,\n      \"competencias\": [\n        {\n          \"nome\": \"documentario\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"narrativa\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"DIRETOR_FOTOGRAFIA\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"camera\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"SONOPLASTA\",\n      \"peso\": 2,\n      \"competencias\": [\n        {\n          \"nome\": \"captacao de som\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"montagem\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"ROTEIRISTA\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"pesquisa\",\n          \"nivel\": 9\n        }\n      ]\n    }\n  ],\n  \"estrategia\": \"orcamento\"\n}",
+          "raw": "{\n  \"tipo\": \"animacao\",\n  \"nome\": \"Curta de Animação\",\n  \"produtor\": \"estudio@exemplo.com\",\n  \"duracao\": 15,\n  \"orcamento\": 80000,\n  \"prazo\": \"2027-03-30\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"animacao\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"storyboard\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EFEITOS_VISUAIS\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"modelagem 3d\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"blender\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 1\n    }\n  ],\n  \"detalhes\": {\n    \"tecnica\": \"3d\",\n    \"quadrosPorSegundo\": 24\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -103,7 +119,7 @@
       }
     },
     {
-      "name": "Erro 422: animação sem efeitos visuais",
+      "name": "Recomendação: publicitário a partir de modelo",
       "request": {
         "method": "POST",
         "header": [
@@ -123,7 +139,37 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nome\": \"Animação sem efeitos visuais\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"genero\": \"drama social\",\n  \"duracao\": 90,\n  \"tipoCaptacao\": \"animacao\",\n  \"orcamento\": 120000,\n  \"prazo\": \"2027-03-30\",\n  \"localizacao\": \"Recife\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 5,\n      \"competencias\": [\n        {\n          \"nome\": \"documentario\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"narrativa\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"DIRETOR_FOTOGRAFIA\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"camera\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"SONOPLASTA\",\n      \"peso\": 2,\n      \"competencias\": [\n        {\n          \"nome\": \"captacao de som\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"montagem\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"ROTEIRISTA\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"pesquisa\",\n          \"nivel\": 9\n        }\n      ]\n    }\n  ]\n}",
+          "raw": "{\n  \"tipo\": \"publicitario\",\n  \"modelo\": \"digital\",\n  \"nome\": \"Lançamento de verão\",\n  \"produtor\": \"agencia@exemplo.com\",\n  \"detalhes\": {\n    \"cliente\": \"Café Aurora\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Erro 422: publicitário sem cliente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"publicitario\",\n  \"nome\": \"Sem cliente\",\n  \"produtor\": \"agencia@exemplo.com\"\n}",
           "options": {
             "raw": {
               "language": "json"

@@ -3,11 +3,16 @@ import type { Papel } from '../dominio/Papel';
 import type { Profissional } from '../dominio/Profissional';
 import type { Projeto } from '../dominio/Projeto';
 import type { RecomendacaoStrategy } from '../estrategias/RecomendacaoStrategy';
+import type { FabricaProjeto } from '../fabricas/FabricaProjeto';
 import type { RepositorioProfissionais } from '../repositorio/RepositorioProfissionais';
 
 export class ProjetoInvalidoError extends Error {
-  constructor(projeto: Projeto) {
-    super(`O projeto ${projeto.nome} não atende às restrições para recomendação`);
+  constructor(
+    projeto: Projeto,
+    readonly motivos: string[] = [],
+  ) {
+    const detalhe = motivos.length > 0 ? `: ${motivos.join('; ')}` : ' para recomendação';
+    super(`O projeto ${projeto.nome} não atende às restrições${detalhe}`);
     this.name = 'ProjetoInvalidoError';
   }
 }
@@ -19,13 +24,20 @@ export interface OpcoesOrquestracao {
   excluir?: string[];
 }
 
-/** Template Method: orquestrar() fixa a ordem das etapas e as subclasses implementam cada uma. */
+/**
+ * Template Method: orquestrar() fixa a ordem das etapas e as subclasses implementam cada uma. O que depende
+ * do tipo de projeto vem da fábrica.
+ */
 export abstract class OrquestradorEquipe {
-  constructor(protected readonly repositorio: RepositorioProfissionais) {}
+  constructor(
+    protected readonly fabrica: FabricaProjeto,
+    protected readonly repositorio: RepositorioProfissionais,
+  ) {}
 
+  /** Sem estratégia, usa o recomendador da família. */
   async orquestrar(
     projeto: Projeto,
-    estrategia: RecomendacaoStrategy,
+    estrategia: RecomendacaoStrategy = this.fabrica.criarRecomendador(),
     opcoes: OpcoesOrquestracao = {},
   ): Promise<Equipe> {
     if (!this.validarRestricoes(projeto)) throw new ProjetoInvalidoError(projeto);

@@ -2,76 +2,82 @@ import Fastify, { type FastifyError, type FastifyServerOptions } from 'fastify';
 import { Competencia } from '../dominio/Competencia';
 import type { Equipe } from '../dominio/Equipe';
 import { Papel } from '../dominio/Papel';
-import { Projeto, type TipoCaptacao } from '../dominio/Projeto';
 import { FiltragemColaborativa } from '../estrategias/FiltragemColaborativa';
 import type { RecomendacaoStrategy } from '../estrategias/RecomendacaoStrategy';
 import { RegrasOrcamento } from '../estrategias/RegrasOrcamento';
 import { SimilaridadeCosseno } from '../estrategias/SimilaridadeCosseno';
+import { DetalheInvalidoError } from '../fabricas/detalhes';
+import { TipoDesconhecidoError } from '../fabricas/RegistroFabricas';
 import { ProjetoInvalidoError } from '../orquestracao/OrquestradorEquipe';
+import { ModeloDesconhecidoError } from '../prototipos/RegistroPrototipos';
 import type { RepositorioProfissionais } from '../repositorio/RepositorioProfissionais';
 import type { SistemaRecomendacao } from '../SistemaRecomendacao';
-import { CalculadorCompatibilidade } from '../visitantes/CalculadorCompatibilidade';
-import { GeradorRelatorio } from '../visitantes/GeradorRelatorio';
-import { ValidadorConsistencia } from '../visitantes/ValidadorConsistencia';
 
-const ESTRATEGIAS = {
-  cosseno: () => new SimilaridadeCosseno(),
-  colaborativa: () => new FiltragemColaborativa(),
-  orcamento: () => new RegrasOrcamento(),
-} satisfies Record<string, () => RecomendacaoStrategy>;
+const ESTRATEGIAS = new Map<string, RecomendacaoStrategy>(
+  [new SimilaridadeCosseno(), new FiltragemColaborativa(), new RegrasOrcamento()].map((e) => [e.nome, e]),
+);
 
-type NomeEstrategia = keyof typeof ESTRATEGIAS;
-
+/** Só tipo, nome e produtor são obrigatórios; o resto vem do modelo. */
 interface CorpoRecomendacao {
+  tipo: string;
+  modelo?: string;
   nome: string;
   produtor: string;
-  genero: string;
-  duracao: number;
-  tipoCaptacao: TipoCaptacao;
-  orcamento: number;
-  prazo: string;
-  localizacao: string;
-  papeis: { papel: Papel; peso: number; competencias?: { nome: string; nivel: number }[] }[];
-  estrategia?: NomeEstrategia;
+  genero?: string;
+  duracao?: number;
+  orcamento?: number;
+  prazo?: string;
+  localizacao?: string;
+  papeis?: { papel: Papel; peso: number; competencias?: { nome: string; nivel: number }[] }[];
+  estrategia?: string;
+  /** Tema, técnica, cliente... conforme o tipo. */
+  detalhes?: Record<string, unknown>;
 }
 
-const esquemaCorpo = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['nome', 'produtor', 'genero', 'duracao', 'tipoCaptacao', 'orcamento', 'prazo', 'localizacao', 'papeis'],
-  properties: {
-    nome: { type: 'string', minLength: 1 },
-    produtor: { type: 'string', minLength: 1 },
-    genero: { type: 'string', minLength: 1 },
-    duracao: { type: 'number', exclusiveMinimum: 0 },
-    tipoCaptacao: { enum: ['documentario', 'ficcao', 'animacao'] },
-    orcamento: { type: 'number', exclusiveMinimum: 0 },
-    prazo: { type: 'string', format: 'date' },
-    localizacao: { type: 'string' },
-    papeis: {
-      type: 'array',
-      minItems: 1,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['papel', 'peso'],
-        properties: {
-          papel: { enum: Object.values(Papel) },
-          peso: { type: 'number', exclusiveMinimum: 0 },
-          competencias: {
-            type: 'array',
-            items: {
-              type: 'object',
-              required: ['nome', 'nivel'],
-              properties: { nome: { type: 'string' }, nivel: { type: 'number', minimum: 0, maximum: 10 } },
+const ERROS_DE_NEGOCIO = [ProjetoInvalidoError, ModeloDesconhecidoError, DetalheInvalidoError, TipoDesconhecidoError];
+
+/** Os tipos vêm das fábricas registradas, então um tipo novo não mexe na rota. */
+function esquemaCorpo(tipos: string[]) {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['tipo', 'nome', 'produtor'],
+    properties: {
+      tipo: { enum: tipos },
+      modelo: { type: 'string', minLength: 1 },
+      nome: { type: 'string', minLength: 1 },
+      produtor: { type: 'string', minLength: 1 },
+      genero: { type: 'string', minLength: 1 },
+      duracao: { type: 'number', exclusiveMinimum: 0 },
+      orcamento: { type: 'number', exclusiveMinimum: 0 },
+      prazo: { type: 'string', format: 'date' },
+      localizacao: { type: 'string' },
+      papeis: {
+        type: 'array',
+        minItems: 1,
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['papel', 'peso'],
+          properties: {
+            papel: { enum: Object.values(Papel) },
+            peso: { type: 'number', exclusiveMinimum: 0 },
+            competencias: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['nome', 'nivel'],
+                properties: { nome: { type: 'string' }, nivel: { type: 'number', minimum: 0, maximum: 10 } },
+              },
             },
           },
         },
       },
+      estrategia: { enum: [...ESTRATEGIAS.keys()] },
+      detalhes: { type: 'object' },
     },
-    estrategia: { enum: Object.keys(ESTRATEGIAS) },
-  },
-} as const;
+  };
+}
 
 export interface DependenciasHttp {
   sistema: SistemaRecomendacao;
@@ -80,9 +86,13 @@ export interface DependenciasHttp {
 
 export function construirApp({ sistema, repositorio }: DependenciasHttp, opcoes: FastifyServerOptions = {}) {
   const app = Fastify(opcoes);
+  const tipos = sistema.catalogo().map((c) => c.tipo);
 
   app.setErrorHandler<FastifyError>((erro, _requisicao, resposta) => {
-    if (erro instanceof ProjetoInvalidoError) return resposta.status(422).send({ erro: erro.message });
+    if (ERROS_DE_NEGOCIO.some((classe) => erro instanceof classe)) {
+      const motivos = erro instanceof ProjetoInvalidoError ? erro.motivos : [];
+      return resposta.status(422).send({ erro: erro.message, motivos });
+    }
     const status = erro.statusCode ?? 500;
     return resposta.status(status).send({ erro: status === 500 ? 'Erro interno' : erro.message });
   });
@@ -100,33 +110,41 @@ export function construirApp({ sistema, repositorio }: DependenciasHttp, opcoes:
     })),
   );
 
-  app.post<{ Body: CorpoRecomendacao }>('/recomendacoes', { schema: { body: esquemaCorpo } }, async (requisicao) => {
+  app.get('/modelos', async () => sistema.catalogo());
+
+  app.post<{ Body: CorpoRecomendacao }>('/recomendacoes', { schema: { body: esquemaCorpo(tipos) } }, async (requisicao) => {
     const corpo = requisicao.body;
-    const projeto = new Projeto({
+    const { projeto, equipe } = await sistema.recomendar({
+      tipo: corpo.tipo,
+      modelo: corpo.modelo,
+      detalhes: corpo.detalhes,
       nome: corpo.nome,
       produtor: corpo.produtor,
       genero: corpo.genero,
       duracao: corpo.duracao,
-      tipoCaptacao: corpo.tipoCaptacao,
-      papeis: corpo.papeis.map((r) => ({
+      papeis: corpo.papeis?.map((r) => ({
         papel: r.papel,
         peso: r.peso,
         competenciasDesejadas: (r.competencias ?? []).map((comp) => new Competencia(comp.nome, comp.nivel)),
       })),
-      restricoes: { orcamento: corpo.orcamento, prazo: new Date(corpo.prazo), localizacao: corpo.localizacao },
-      ...(corpo.estrategia && { estrategia: ESTRATEGIAS[corpo.estrategia]() }),
+      restricoes: {
+        orcamento: corpo.orcamento,
+        prazo: corpo.prazo === undefined ? undefined : new Date(corpo.prazo),
+        localizacao: corpo.localizacao,
+      },
+      estrategia: corpo.estrategia === undefined ? undefined : ESTRATEGIAS.get(corpo.estrategia),
     });
 
-    const equipe = await sistema.executarRecomendacao(projeto);
-    const validador = new ValidadorConsistencia();
+    const avaliacao = sistema.avaliar(projeto);
     return {
       projetoId: projeto.id,
+      tipo: projeto.tipo,
       estrategia: sistema.estrategiaPara(projeto).nome,
       equipe: serializarEquipe(equipe),
-      compatibilidade: Number(projeto.aceitar(new CalculadorCompatibilidade()).toFixed(3)),
-      consistente: projeto.aceitar(validador),
-      erros: validador.erros,
-      relatorio: projeto.aceitar(new GeradorRelatorio()),
+      compatibilidade: Number(avaliacao.compatibilidade.toFixed(3)),
+      consistente: avaliacao.consistente,
+      erros: avaliacao.erros,
+      relatorio: avaliacao.relatorio,
     };
   });
 

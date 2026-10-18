@@ -50,10 +50,27 @@ describe('Visitor', () => {
       ]);
     });
 
-    it('aponta projeto sem equipe e cadastro de profissional inconsistente', () => {
+    it('sem equipe, valida só as restrições do projeto', () => {
       const validador = new ValidadorConsistencia();
-      expect(criarProjeto().aceitar(validador)).toBe(false);
-      expect(validador.erros).toEqual(['Projeto sem equipe recomendada']);
+      expect(criarProjeto().aceitar(validador)).toBe(true);
+
+      const invalido = criarProjeto({
+        duracao: 0,
+        papeis: [requisito(Papel.DIRETOR, 0)],
+        restricoes: { orcamento: 0, prazo: PRAZO, localizacao: 'SP' },
+      });
+      expect(invalido.aceitar(validador)).toBe(false);
+      expect(validador.erros).toEqual([
+        'Orçamento deve ser positivo',
+        'Duração deve ser positiva',
+        'Papel DIRETOR sem peso',
+      ]);
+      expect(criarProjeto({ papeis: [] }).aceitar(validador)).toBe(false);
+      expect(validador.erros).toEqual(['Projeto sem papéis técnicos']);
+    });
+
+    it('aponta cadastro de profissional inconsistente', () => {
+      const validador = new ValidadorConsistencia();
 
       const semPreco = new Profissional({
         id: 'x', nome: 'Sem Preço', especialidades: [Papel.EDITOR], competencias: [], precoMedio: 0,

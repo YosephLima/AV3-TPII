@@ -1,0 +1,231 @@
+@startuml
+!theme plain
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+}
+skinparam stereotype {
+  BackgroundColor White
+  BorderColor Black
+}
+title cinebridge AV2: diagrama de classes refinado (padrões criacionais)
+
+' ---------- Prototype ----------
+abstract class Projeto {
+  +id: string
+  +tipo: string {abstract}
+  +nome: string
+  +produtor: string
+  +genero: string
+  +duracao: number
+  +papeis: RequisitoPapel[]
+  +restricoes: Restricoes
+  +estrategia: RecomendacaoStrategy [0..1]
+  +equipe: Equipe [0..1]
+  +clonar(ajustes?: AjustesProjeto): Projeto {abstract}
+  +aceitarRecomendacao(papel: Papel, profissional: Profissional): void
+  +substituirMembro(papel: Papel, profissional: Profissional): void
+  +solicitarReavaliacao(): void
+  +aceitar<R>(visitante: VisitanteProjeto<R>): R
+  #dadosClonados(ajustes: AjustesProjeto): DadosProjeto
+}
+
+class ProjetoDocumentario {
+  +tema: string
+  +entrevistados: string[]
+  +clonar(ajustes?: AjustesDocumentario): ProjetoDocumentario
+}
+
+class ProjetoAnimacao {
+  +tecnica: string
+  +quadrosPorSegundo: number
+  +totalDeQuadros: number
+  +clonar(ajustes?: AjustesAnimacao): ProjetoAnimacao
+}
+
+class ProjetoPublicitario {
+  +cliente: string
+  +veiculacao: string
+  +clonar(ajustes?: AjustesPublicitario): ProjetoPublicitario
+}
+
+class ProjetoFiccao {
+  +clonar(ajustes?: AjustesProjeto): ProjetoFiccao
+}
+
+class RegistroPrototipos<P extends Projeto> {
+  -modelos: Map<string, P>
+  +registrar(nome: string, prototipo: P): RegistroPrototipos<P>
+  +modelo(nome: string): P
+  +clonar(nome: string, ajustes?: AjustesProjeto): P
+  +nomes(): string[]
+}
+
+Projeto <|-- ProjetoDocumentario
+Projeto <|-- ProjetoAnimacao
+Projeto <|-- ProjetoPublicitario
+Projeto <|-- ProjetoFiccao
+RegistroPrototipos "1" o-- "1..*" Projeto : modelos
+
+' ---------- Abstract Factory / Factory Method ----------
+interface FabricaProjeto {
+  +tipo: string
+  +modelos(): string[]
+  +criarProjeto(dados?: DadosCriacao): Projeto
+  +criarValidador(): ValidadorProjeto
+  +criarRecomendador(): RecomendacaoStrategy
+  +criarNotificador(): Observador
+  +criarRelatorio(): VisitanteProjeto<string>
+}
+
+abstract class FabricaProjetoBase<P extends Projeto> {
+  #prototipos: RegistroPrototipos<P>
+  #enviar: EnviarEmail
+  +criarProjeto(dados?: DadosCriacao): P
+  +criarValidador(): ValidadorProjeto
+  +criarRecomendador(): RecomendacaoStrategy
+  +criarNotificador(): Observador
+  +criarRelatorio(): VisitanteProjeto<string>
+  #clonarModelo(modelo: P, ajustes: AjustesProjeto, detalhes: Detalhes): P {abstract}
+}
+
+class FabricaDocumentario
+class FabricaAnimacao
+class FabricaPublicitario
+class FabricaFiccao
+
+class RegistroFabricas {
+  -fabricas: Map<string, FabricaProjeto>
+  +registrar(fabrica: FabricaProjeto): RegistroFabricas
+  +para(tipo: string): FabricaProjeto
+  +tipos(): string[]
+  +todas(): FabricaProjeto[]
+}
+
+FabricaProjeto <|.. FabricaProjetoBase
+FabricaProjetoBase <|-- FabricaDocumentario
+FabricaProjetoBase <|-- FabricaAnimacao
+FabricaProjetoBase <|-- FabricaPublicitario
+FabricaProjetoBase <|-- FabricaFiccao
+FabricaProjetoBase "1" *-- "1" RegistroPrototipos : prototipos
+RegistroFabricas "1" o-- "1..*" FabricaProjeto
+
+' ---------- Produtos de cada família ----------
+interface RecomendacaoStrategy {
+  +nome: string
+  +recomendar(projeto: Projeto, profissionais: Profissional[]): Map<Papel, Profissional[]>
+}
+abstract class RecomendadorPorPontuacao {
+  #pontuar(requisito: RequisitoPapel, profissional: Profissional): number {abstract}
+}
+class RecomendadorDocumentario
+class RecomendadorAnimacao
+class RecomendadorPublicitario
+class SimilaridadeCosseno
+
+interface VisitanteProjeto<R> {
+  +visitarProjeto(projeto: Projeto): R
+  +visitarProfissional(profissional: Profissional): R
+}
+interface ValidadorProjeto {
+  +erros: string[]
+}
+class ValidadorConsistencia {
+  #validarRestricoes(projeto: Projeto): void
+  #validarTipo(projeto: Projeto): void
+  #validarEquipe(projeto: Projeto, equipe: Equipe): void
+}
+class ValidadorDocumentario
+class ValidadorAnimacao
+class ValidadorPublicitario
+class GeradorRelatorio {
+  #linhasDoTipo(projeto: Projeto): string[]
+}
+class RelatorioAnimacao
+
+interface Observador {
+  +atualizar(evento: EventoRecomendacao): void
+}
+class NotificadorConvite<P extends Projeto> {
+  #detalhes(projeto: P): string
+}
+class NotificadorDocumentario
+class NotificadorAnimacao
+class NotificadorPublicitario
+
+RecomendacaoStrategy <|.. RecomendadorPorPontuacao
+RecomendacaoStrategy <|.. SimilaridadeCosseno
+RecomendadorPorPontuacao <|-- RecomendadorDocumentario
+RecomendadorPorPontuacao <|-- RecomendadorAnimacao
+RecomendadorPorPontuacao <|-- RecomendadorPublicitario
+
+VisitanteProjeto <|-- ValidadorProjeto
+ValidadorProjeto <|.. ValidadorConsistencia
+ValidadorConsistencia <|-- ValidadorDocumentario
+ValidadorConsistencia <|-- ValidadorAnimacao
+ValidadorConsistencia <|-- ValidadorPublicitario
+VisitanteProjeto <|.. GeradorRelatorio
+GeradorRelatorio <|-- RelatorioAnimacao
+GeradorRelatorio "1" --> "1" ValidadorProjeto : usa
+
+Observador <|.. NotificadorConvite
+NotificadorConvite <|-- NotificadorDocumentario
+NotificadorConvite <|-- NotificadorAnimacao
+NotificadorConvite <|-- NotificadorPublicitario
+
+FabricaDocumentario ..> ProjetoDocumentario : cria
+FabricaDocumentario ..> ValidadorDocumentario : cria
+FabricaDocumentario ..> RecomendadorDocumentario : cria
+FabricaDocumentario ..> NotificadorDocumentario : cria
+FabricaAnimacao ..> ProjetoAnimacao : cria
+FabricaAnimacao ..> ValidadorAnimacao : cria
+FabricaAnimacao ..> RecomendadorAnimacao : cria
+FabricaAnimacao ..> NotificadorAnimacao : cria
+FabricaAnimacao ..> RelatorioAnimacao : cria
+FabricaPublicitario ..> ProjetoPublicitario : cria
+FabricaPublicitario ..> ValidadorPublicitario : cria
+FabricaPublicitario ..> RecomendadorPublicitario : cria
+FabricaPublicitario ..> NotificadorPublicitario : cria
+FabricaFiccao ..> ProjetoFiccao : cria
+FabricaProjetoBase ..> ValidadorConsistencia : cria (padrão)
+FabricaProjetoBase ..> SimilaridadeCosseno : cria (padrão)
+FabricaProjetoBase ..> NotificadorConvite : cria (padrão)
+FabricaProjetoBase ..> GeradorRelatorio : cria (padrão)
+
+' ---------- Clientes das fábricas ----------
+abstract class OrquestradorEquipe {
+  #fabrica: FabricaProjeto
+  #repositorio: RepositorioProfissionais
+  +orquestrar(projeto: Projeto, estrategia?: RecomendacaoStrategy, opcoes?: OpcoesOrquestracao): Promise<Equipe>
+  #validarRestricoes(projeto: Projeto): boolean {abstract}
+  #normalizarDados(projeto: Projeto, profissionais: Profissional[]): Profissional[] {abstract}
+  #posProcessar(projeto: Projeto, recomendacoes: Map<Papel, Profissional[]>): Map<Papel, Profissional[]> {abstract}
+}
+class OrquestradorPadrao
+
+class SistemaRecomendacao {
+  -fabricas: RegistroFabricas
+  -criarOrquestrador: (fabrica: FabricaProjeto) => OrquestradorEquipe
+  -barramento: BarramentoEventos
+  -observadores: Observador[]
+  -estrategiaAtual: RecomendacaoStrategy [0..1]
+  +recomendar(solicitacao: SolicitacaoRecomendacao): Promise<{projeto, equipe}>
+  +criarProjeto(solicitacao: SolicitacaoRecomendacao): Projeto
+  +executarRecomendacao(projeto: Projeto): Promise<Equipe>
+  +substituirMembro(projeto: Projeto, papel: Papel): Promise<MembroEquipe>
+  +responderConvite(projeto: Projeto, papel: Papel, aceito: boolean): Promise<void>
+  +reavaliar(projeto: Projeto): Promise<Equipe>
+  +avaliar(projeto: Projeto): Avaliacao
+  +estrategiaPara(projeto: Projeto): RecomendacaoStrategy
+  +definirEstrategia(estrategia: RecomendacaoStrategy): void
+  +adicionarObservador(observador: Observador): void
+  +catalogo(): {tipo, modelos}[]
+}
+
+OrquestradorEquipe <|-- OrquestradorPadrao
+OrquestradorEquipe "1" --> "1" FabricaProjeto : depende
+SistemaRecomendacao "1" --> "1" RegistroFabricas : seleciona fábrica
+SistemaRecomendacao "1" ..> "1" OrquestradorEquipe : cria por solicitação
+SistemaRecomendacao "1" --> "0..*" Observador : observadores gerais
+@enduml

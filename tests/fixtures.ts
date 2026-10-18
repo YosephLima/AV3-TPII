@@ -3,7 +3,11 @@ import { profissionaisIniciais } from '../src/dados/profissionais';
 import { Competencia } from '../src/dominio/Competencia';
 import { Papel } from '../src/dominio/Papel';
 import type { Profissional } from '../src/dominio/Profissional';
-import { Projeto, type DadosProjeto, type RequisitoPapel } from '../src/dominio/Projeto';
+import type { DadosProjeto, Projeto, RequisitoPapel } from '../src/dominio/Projeto';
+import { ProjetoAnimacao } from '../src/dominio/ProjetoAnimacao';
+import { ProjetoDocumentario } from '../src/dominio/ProjetoDocumentario';
+import { ProjetoFiccao } from '../src/dominio/ProjetoFiccao';
+import { ProjetoPublicitario } from '../src/dominio/ProjetoPublicitario';
 import type { Email } from '../src/observadores/NotificadorEmail';
 
 export const PRAZO = new Date('2027-03-30');
@@ -14,14 +18,22 @@ export const requisito = (papel: Papel, peso: number, ...competencias: [string, 
   competenciasDesejadas: competencias.map(([nome, nivel]) => new Competencia(nome, nivel)),
 });
 
-/** Documentário com os cinco papéis mais comuns; qualquer campo pode ser sobrescrito. */
-export function criarProjeto(dados: Partial<DadosProjeto> = {}): Projeto {
-  return new Projeto({
+const construtores = {
+  documentario: (dados) => new ProjetoDocumentario({ ...dados, tema: 'Migração no sertão', entrevistados: ['Dona Socorro'] }),
+  animacao: (dados) => new ProjetoAnimacao({ ...dados, tecnica: '3d', quadrosPorSegundo: 24 }),
+  publicitario: (dados) => new ProjetoPublicitario({ ...dados, cliente: 'Café Aurora', veiculacao: 'tv' }),
+  ficcao: (dados) => new ProjetoFiccao(dados),
+} satisfies Record<string, (dados: DadosProjeto) => Projeto>;
+
+export type TipoDeTeste = keyof typeof construtores;
+
+/** Documentário por padrão; qualquer campo pode ser sobrescrito. */
+export function criarProjeto(dados: Partial<DadosProjeto> = {}, tipo: TipoDeTeste = 'documentario'): Projeto {
+  return construtores[tipo]({
     nome: 'Vozes do Sertão',
     produtor: 'produtora@exemplo.com',
     genero: 'drama social',
     duracao: 90,
-    tipoCaptacao: 'documentario',
     papeis: [
       requisito(Papel.DIRETOR, 5, ['documentario', 9], ['narrativa', 8]),
       requisito(Papel.DIRETOR_FOTOGRAFIA, 3, ['camera', 8]),

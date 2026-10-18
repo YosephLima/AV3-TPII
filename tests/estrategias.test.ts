@@ -10,11 +10,13 @@ import { criarProjeto, PRAZO, profissional, requisito } from './fixtures';
 const diretores = () => [profissional('p01'), profissional('p02'), profissional('p03')];
 
 const projetoDeAnimacao = (orcamento: number) =>
-  criarProjeto({
-    tipoCaptacao: 'animacao',
-    papeis: [requisito(Papel.DIRETOR, 1, ['animacao', 8], ['storyboard', 7])],
-    restricoes: { orcamento, prazo: PRAZO, localizacao: 'São Paulo' },
-  });
+  criarProjeto(
+    {
+      papeis: [requisito(Papel.DIRETOR, 1, ['animacao', 8], ['storyboard', 7])],
+      restricoes: { orcamento, prazo: PRAZO, localizacao: 'São Paulo' },
+    },
+    'animacao',
+  );
 
 const idsPara = (estrategia: RecomendacaoStrategy, orcamento = 16_000) =>
   (estrategia.recomendar(projetoDeAnimacao(orcamento), diretores()).get(Papel.DIRETOR) ?? []).map((p) => p.id);

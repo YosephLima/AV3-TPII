@@ -17,7 +17,7 @@ services:
 
   api:
     build: .
-    image: cinebridge-recomendacao:av1
+    image: cinebridge-recomendacao:av2
     depends_on:
       postgres:
         condition: service_healthy

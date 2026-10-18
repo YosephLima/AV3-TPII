@@ -7,11 +7,11 @@ const app = construirApp({ sistema, repositorio });
 afterAll(() => app.close());
 
 const corpo = {
+  tipo: 'animacao',
   nome: 'Curta de Animação',
   produtor: 'estudio@exemplo.com',
   genero: 'fantasia',
   duracao: 15,
-  tipoCaptacao: 'animacao',
   orcamento: 80_000,
   prazo: '2027-03-30',
   localizacao: 'São Paulo',
@@ -20,7 +20,10 @@ const corpo = {
     { papel: 'EFEITOS_VISUAIS', peso: 4, competencias: [{ nome: 'modelagem 3d', nivel: 9 }, { nome: 'blender', nivel: 8 }] },
     { papel: 'EDITOR', peso: 1 },
   ],
+  detalhes: { tecnica: '3d', quadrosPorSegundo: 24 },
 };
+
+const post = (payload: object) => app.inject({ method: 'POST', url: '/recomendacoes', payload });
 
 describe('API HTTP', () => {
   it('GET /saude e GET /profissionais', async () => {
@@ -29,34 +32,68 @@ describe('API HTTP', () => {
     expect(profissionais).toHaveLength(16);
   });
 
-  it('POST /recomendacoes devolve equipe, métricas e relatório, e gera auditoria', async () => {
-    const resposta = await app.inject({ method: 'POST', url: '/recomendacoes', payload: corpo });
+  it('GET /modelos lista os tipos e os modelos de cada um', async () => {
+    const modelos = (await app.inject({ method: 'GET', url: '/modelos' })).json();
+    expect(modelos).toEqual([
+      { tipo: 'documentario', modelos: ['padrao', 'entrevistas'] },
+      { tipo: 'animacao', modelos: ['padrao', 'curta-2d'] },
+      { tipo: 'publicitario', modelos: ['padrao', 'digital'] },
+      { tipo: 'ficcao', modelos: ['padrao'] },
+    ]);
+  });
+
+  it('POST /recomendacoes usa a família do tipo: recomendador, validador e relatório', async () => {
+    const resposta = await post(corpo);
     const dados = resposta.json();
 
     expect(resposta.statusCode).toBe(200);
-    expect(dados.estrategia).toBe('cosseno');
+    expect(dados.tipo).toBe('animacao');
+    expect(dados.estrategia).toBe('animacao');
     expect(dados.equipe.membros.map((m: { profissional: { id: string } }) => m.profissional.id)).toEqual([
       'p03',
       'p14',
       'p09',
     ]);
     expect(dados.consistente).toBe(true);
-    expect(dados.relatorio).toContain('Curta de Animação');
+    expect(dados.relatorio).toContain('21600 quadros');
     expect(linhasAuditoria.length).toBeGreaterThan(0);
   });
 
   it('respeita a estratégia escolhida pelo produtor', async () => {
-    const resposta = await app.inject({ method: 'POST', url: '/recomendacoes', payload: { ...corpo, estrategia: 'orcamento' } });
-    expect(resposta.json().estrategia).toBe('orcamento');
+    expect((await post({ ...corpo, estrategia: 'orcamento' })).json().estrategia).toBe('orcamento');
   });
 
-  it('400 para corpo inválido e 422 para projeto que não atende às restrições', async () => {
-    const invalido = await app.inject({ method: 'POST', url: '/recomendacoes', payload: { nome: 'x' } });
-    expect(invalido.statusCode).toBe(400);
+  it('cria o projeto a partir de um modelo, só com tipo, nome, produtor e os detalhes do tipo', async () => {
+    const resposta = await post({
+      tipo: 'publicitario',
+      modelo: 'digital',
+      nome: 'Lançamento',
+      produtor: 'agencia@exemplo.com',
+      detalhes: { cliente: 'Café Aurora' },
+    });
 
-    const semVfx = { ...corpo, papeis: [{ papel: 'DIRETOR', peso: 1 }] };
-    const restrito = await app.inject({ method: 'POST', url: '/recomendacoes', payload: semVfx });
-    expect(restrito.statusCode).toBe(422);
-    expect(restrito.json().erro).toContain('não atende');
+    expect(resposta.statusCode).toBe(200);
+    expect(resposta.json().equipe.membros.map((m: { papel: string }) => m.papel)).toEqual([
+      'DIRETOR',
+      'EDITOR',
+      'DIRETOR_FOTOGRAFIA',
+    ]);
+  });
+
+  it('422 com os motivos quando o projeto não atende às regras da família', async () => {
+    const resposta = await post({ tipo: 'publicitario', nome: 'Sem cliente', produtor: 'agencia@exemplo.com' });
+    expect(resposta.statusCode).toBe(422);
+    expect(resposta.json().motivos).toEqual(['Peça publicitária sem cliente']);
+
+    const semVfx = await post({ ...corpo, papeis: [{ papel: 'DIRETOR', peso: 1 }] });
+    expect(semVfx.statusCode).toBe(422);
+    expect(semVfx.json().erro).toContain('não atende');
+  });
+
+  it('422 para modelo inexistente ou detalhe com tipo errado; 400 para corpo inválido', async () => {
+    expect((await post({ tipo: 'documentario', modelo: 'nao-existe', nome: 'x', produtor: 'y' })).statusCode).toBe(422);
+    expect((await post({ ...corpo, detalhes: { quadrosPorSegundo: 'muitos' } })).statusCode).toBe(422);
+    expect((await post({ nome: 'x' })).statusCode).toBe(400);
+    expect((await post({ ...corpo, tipo: 'realidade-virtual' })).statusCode).toBe(400);
   });
 });

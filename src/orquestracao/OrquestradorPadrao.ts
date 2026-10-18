@@ -1,23 +1,15 @@
 import type { Recomendacoes } from '../dominio/Equipe';
-import { Papel } from '../dominio/Papel';
 import type { Profissional } from '../dominio/Profissional';
 import type { Projeto } from '../dominio/Projeto';
-import { OrquestradorEquipe } from './OrquestradorEquipe';
+import { OrquestradorEquipe, ProjetoInvalidoError } from './OrquestradorEquipe';
 
 export class OrquestradorPadrao extends OrquestradorEquipe {
   static readonly ALTERNATIVAS_POR_PAPEL = 5;
 
+  /** Usa o validador da família e já lança o erro com os motivos. */
   protected validarRestricoes(projeto: Projeto): boolean {
-    const basicas =
-      projeto.orcamento > 0 &&
-      projeto.duracao > 0 &&
-      projeto.papeis.length > 0 &&
-      projeto.papeis.every((r) => r.peso > 0);
-    if (!basicas) return false;
-
-    if (projeto.tipoCaptacao === 'animacao') {
-      return projeto.papeis.some((r) => r.papel === Papel.EFEITOS_VISUAIS);
-    }
+    const validador = this.fabrica.criarValidador();
+    if (!projeto.aceitar(validador)) throw new ProjetoInvalidoError(projeto, validador.erros);
     return true;
   }
 

@@ -1,0 +1,14 @@
+{
+  "tipo": "animacao",
+  "nome": "Curta de Animação",
+  "produtor": "estudio@exemplo.com",
+  "duracao": 15,
+  "orcamento": 80000,
+  "prazo": "2027-03-30",
+  "papeis": [
+    { "papel": "DIRETOR", "peso": 3, "competencias": [{ "nome": "animacao", "nivel": 9 }, { "nome": "storyboard", "nivel": 8 }] },
+    { "papel": "EFEITOS_VISUAIS", "peso": 4, "competencias": [{ "nome": "modelagem 3d", "nivel": 9 }, { "nome": "blender", "nivel": 8 }] },
+    { "papel": "EDITOR", "peso": 1 }
+  ],
+  "detalhes": { "tecnica": "3d", "quadrosPorSegundo": 24 }
+}
