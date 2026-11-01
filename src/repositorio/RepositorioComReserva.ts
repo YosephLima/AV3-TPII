@@ -1,3 +1,4 @@
+import type { Avaliacao } from '../dominio/Avaliacao';
 import type { Profissional } from '../dominio/Profissional';
 import type { RepositorioProfissionais } from './RepositorioProfissionais';
 
@@ -15,6 +16,16 @@ export class RepositorioComReserva implements RepositorioProfissionais {
     } catch (erro) {
       this.aoFalhar(erro);
       return this.reserva.listar();
+    }
+  }
+
+  /** Sem o principal, a avaliação fica só na memória até o banco voltar. */
+  async registrarAvaliacao(profissionalId: string, avaliacao: Avaliacao): Promise<void> {
+    try {
+      await this.principal.registrarAvaliacao(profissionalId, avaliacao);
+    } catch (erro) {
+      this.aoFalhar(erro);
+      await this.reserva.registrarAvaliacao(profissionalId, avaliacao);
     }
   }
 }

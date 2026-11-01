@@ -5,7 +5,7 @@ import { Profissional } from '../dominio/Profissional';
 import type { PrismaClient } from '../../generated/prisma/client';
 import type { RepositorioProfissionais } from './RepositorioProfissionais';
 
-type ClientePrisma = Pick<PrismaClient, 'profissional'>;
+type ClientePrisma = Pick<PrismaClient, 'profissional' | 'avaliacao'>;
 
 export class RepositorioProfissionaisPostgres implements RepositorioProfissionais {
   constructor(private readonly prisma: ClientePrisma) {}
@@ -30,5 +30,11 @@ export class RepositorioProfissionaisPostgres implements RepositorioProfissionai
           projetosAnteriores: r.projetosAnteriores,
         }),
     );
+  }
+
+  async registrarAvaliacao(profissionalId: string, avaliacao: Avaliacao): Promise<void> {
+    await this.prisma.avaliacao.create({
+      data: { profissionalId, nota: avaliacao.nota, comentario: avaliacao.comentario, data: avaliacao.data },
+    });
   }
 }

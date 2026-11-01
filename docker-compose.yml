@@ -17,7 +17,7 @@ services:
 
   api:
     build: .
-    image: cinebridge-recomendacao:av2
+    image: cinebridge-recomendacao:av3
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,7 +26,16 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://cinebridge:cinebridge@postgres:5432/cinebridge
+      ARMAZENAMENTO: local
+      ARMAZENAMENTO_DIR: /app/armazenamento
+      PAGAMENTO: stripe
+      PROFISSIONAIS: interno
+      DECORADORES: auditoria,cache,compressao
+      NIVEL_COMPRESSAO: 6
+    volumes:
+      - arquivos:/app/armazenamento
     command: ["sh", "-c", "npm run db:preparar && npm start"]
 
 volumes:
   dados:
+  arquivos:

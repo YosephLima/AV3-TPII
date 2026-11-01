@@ -5,10 +5,47 @@
   "duracao": 15,
   "orcamento": 80000,
   "prazo": "2027-03-30",
-  "papeis": [
-    { "papel": "DIRETOR", "peso": 3, "competencias": [{ "nome": "animacao", "nivel": 9 }, { "nome": "storyboard", "nivel": 8 }] },
-    { "papel": "EFEITOS_VISUAIS", "peso": 4, "competencias": [{ "nome": "modelagem 3d", "nivel": 9 }, { "nome": "blender", "nivel": 8 }] },
-    { "papel": "EDITOR", "peso": 1 }
-  ],
+  "servico": {
+    "nome": "Curta de Animação",
+    "servicos": [
+      {
+        "nome": "Pré-produção",
+        "servicos": [
+          {
+            "nome": "Direção e storyboard",
+            "papel": "DIRETOR",
+            "custo": 18000,
+            "prazo": "2026-12-15",
+            "competencias": [{ "nome": "animacao", "nivel": 9 }, { "nome": "storyboard", "nivel": 8 }]
+          }
+        ]
+      },
+      {
+        "nome": "Produção",
+        "servicos": [
+          {
+            "nome": "Modelagem 3D",
+            "papel": "EFEITOS_VISUAIS",
+            "custo": 24000,
+            "prazo": "2027-02-15",
+            "competencias": [{ "nome": "modelagem 3d", "nivel": 9 }, { "nome": "blender", "nivel": 8 }]
+          }
+        ]
+      },
+      {
+        "nome": "Pós-produção",
+        "servicos": [
+          { "nome": "Montagem", "papel": "EDITOR", "custo": 6000, "prazo": "2027-03-20" },
+          {
+            "nome": "Som",
+            "servicos": [
+              { "nome": "Foley", "papel": "SONOPLASTA", "custo": 3000, "prazo": "2027-03-10", "competencias": [{ "nome": "foley", "nivel": 7 }] },
+              { "nome": "Mixagem", "papel": "SONOPLASTA", "custo": 3000, "prazo": "2027-03-25", "competencias": [{ "nome": "mixagem", "nivel": 8 }] }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "detalhes": { "tecnica": "3d", "quadrosPorSegundo": 24 }
 }

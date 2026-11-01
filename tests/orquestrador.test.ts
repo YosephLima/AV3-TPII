@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AdaptadorInterno } from '../src/adaptadores/profissionais/AdaptadorInterno';
 import { profissionaisIniciais } from '../src/dados/profissionais';
 import type { Recomendacoes } from '../src/dominio/Equipe';
 import { Papel } from '../src/dominio/Papel';
@@ -12,9 +13,9 @@ import { FabricaFiccao } from '../src/fabricas/ficcao/FabricaFiccao';
 import { OrquestradorEquipe, ProjetoInvalidoError } from '../src/orquestracao/OrquestradorEquipe';
 import { OrquestradorPadrao } from '../src/orquestracao/OrquestradorPadrao';
 import { RepositorioProfissionaisMemoria } from '../src/repositorio/RepositorioProfissionais';
-import { criarProjeto, PRAZO, requisito } from './fixtures';
+import { criarProjeto, PRAZO, servico, servicos } from './fixtures';
 
-const repositorio = () => new RepositorioProfissionaisMemoria(profissionaisIniciais());
+const repositorio = () => new AdaptadorInterno(new RepositorioProfissionaisMemoria(profissionaisIniciais()));
 
 /** Só anota a ordem em que o template chama as etapas. */
 class OrquestradorEspiao extends OrquestradorEquipe {
@@ -98,13 +99,13 @@ describe('OrquestradorPadrao', () => {
 
   it('recusa orçamento zerado ou papel sem peso', async () => {
     const semOrcamento = criarProjeto({ restricoes: { orcamento: 0, prazo: PRAZO, localizacao: 'SP' } });
-    const semPeso = criarProjeto({ papeis: [requisito(Papel.DIRETOR, 0)] });
+    const semPeso = criarProjeto({ servicoPrincipal: servicos(servico(Papel.DIRETOR, 0)) });
     await expect(orquestrador.orquestrar(semOrcamento, new SimilaridadeCosseno())).rejects.toThrow(ProjetoInvalidoError);
     await expect(orquestrador.orquestrar(semPeso, new SimilaridadeCosseno())).rejects.toThrow(ProjetoInvalidoError);
   });
 
   it('descarta quem só fica disponível depois do prazo', async () => {
-    const projeto = criarProjeto({ papeis: [requisito(Papel.DIRETOR_FOTOGRAFIA, 1, ['iluminacao', 8], ['camera', 8])] });
+    const projeto = criarProjeto({ servicoPrincipal: servicos(servico(Papel.DIRETOR_FOTOGRAFIA, 1, ['iluminacao', 8], ['camera', 8])) });
     const equipe = await orquestrador.orquestrar(projeto, new SimilaridadeCosseno());
     // Fábio Nunes (p06) só começa em 2027-06-01, depois do prazo.
     expect(equipe.ranking.get(Papel.DIRETOR_FOTOGRAFIA)?.map((p) => p.id)).not.toContain('p06');
@@ -113,10 +114,10 @@ describe('OrquestradorPadrao', () => {
   it('não escala a mesma pessoa para dois papéis; o papel de maior peso escolhe primeiro', async () => {
     // Bruno (p02) é o melhor candidato tanto a diretor quanto a roteirista.
     const projeto = criarProjeto({
-      papeis: [
-        requisito(Papel.ROTEIRISTA, 5, ['roteiro', 8], ['documentario', 9], ['narrativa', 9]),
-        requisito(Papel.DIRETOR, 2, ['documentario', 9]),
-      ],
+      servicoPrincipal: servicos(
+        servico(Papel.ROTEIRISTA, 5, ['roteiro', 8], ['documentario', 9], ['narrativa', 9]),
+        servico(Papel.DIRETOR, 2, ['documentario', 9]),
+      ),
     });
     const equipe = await orquestrador.orquestrar(projeto, new SimilaridadeCosseno());
 

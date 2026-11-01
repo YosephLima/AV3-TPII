@@ -10,7 +10,12 @@ import { NotificadorConvite } from '../src/observadores/NotificadorConvite';
 import type { EnviarEmail } from '../src/observadores/NotificadorEmail';
 import type { Observador } from '../src/observadores/Observador';
 import { RegistroPrototipos } from '../src/prototipos/RegistroPrototipos';
+import { PacoteServico } from '../src/servicos/PacoteServico';
+import { ServicoAtomico } from '../src/servicos/ServicoAtomico';
 import { ValidadorConsistencia, type ValidadorProjeto } from '../src/visitantes/ValidadorConsistencia';
+
+const servicoRV = (nome: string, papel: Papel, custo: number, competencia: Competencia) =>
+  new ServicoAtomico({ nome, custoBase: custo, prazoBase: new Date('2027-06-01'), papelNecessario: papel, competenciasDesejadas: [competencia] });
 
 type AjustesRealidadeVirtual = AjustesProjeto & { plataforma?: string };
 
@@ -51,11 +56,11 @@ export class FabricaRealidadeVirtual extends FabricaProjetoBase<ProjetoRealidade
         produtor: '',
         genero: 'experiência imersiva',
         duracao: 10,
-        papeis: [
-          { papel: Papel.DIRETOR, peso: 3, competenciasDesejadas: [new Competencia('narrativa', 8)] },
-          { papel: Papel.EFEITOS_VISUAIS, peso: 5, competenciasDesejadas: [new Competencia('renderizacao', 9)] },
-          { papel: Papel.SONOPLASTA, peso: 2, competenciasDesejadas: [new Competencia('mixagem', 8)] },
-        ],
+        servicoPrincipal: new PacoteServico('Experiência imersiva', [
+          servicoRV('Direção', Papel.DIRETOR, 30_000, new Competencia('narrativa', 8)),
+          servicoRV('Ambientes 3D', Papel.EFEITOS_VISUAIS, 50_000, new Competencia('renderizacao', 9)),
+          servicoRV('Áudio espacial', Papel.SONOPLASTA, 20_000, new Competencia('mixagem', 8)),
+        ]),
         restricoes: { orcamento: 100_000, prazo: new Date('2027-06-30'), localizacao: 'São Paulo' },
       },
       '',

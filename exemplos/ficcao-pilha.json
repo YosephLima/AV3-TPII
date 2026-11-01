@@ -1,0 +1,7 @@
+{
+  "tipo": "ficcao",
+  "nome": "Longa de estreia",
+  "produtor": "produtora@exemplo.com",
+  "orcamento": 320000,
+  "decoradores": ["auditoria", "cache", "compressao"]
+}

@@ -1,6 +1,7 @@
 node_modules
 coverage
-docs
+context
 generated
 .env
 .git
+/armazenamento

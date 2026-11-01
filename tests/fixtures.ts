@@ -3,20 +3,31 @@ import { profissionaisIniciais } from '../src/dados/profissionais';
 import { Competencia } from '../src/dominio/Competencia';
 import { Papel } from '../src/dominio/Papel';
 import type { Profissional } from '../src/dominio/Profissional';
-import type { DadosProjeto, Projeto, RequisitoPapel } from '../src/dominio/Projeto';
+import type { DadosProjeto, Projeto } from '../src/dominio/Projeto';
 import { ProjetoAnimacao } from '../src/dominio/ProjetoAnimacao';
 import { ProjetoDocumentario } from '../src/dominio/ProjetoDocumentario';
 import { ProjetoFiccao } from '../src/dominio/ProjetoFiccao';
 import { ProjetoPublicitario } from '../src/dominio/ProjetoPublicitario';
 import type { Email } from '../src/observadores/NotificadorEmail';
+import { PacoteServico } from '../src/servicos/PacoteServico';
+import { ServicoAtomico } from '../src/servicos/ServicoAtomico';
+import type { ServicoProjeto } from '../src/servicos/ServicoProjeto';
 
 export const PRAZO = new Date('2027-03-30');
 
-export const requisito = (papel: Papel, peso: number, ...competencias: [string, number][]): RequisitoPapel => ({
-  papel,
-  peso,
-  competenciasDesejadas: competencias.map(([nome, nivel]) => new Competencia(nome, nivel)),
-});
+const DIA_EM_MS = 86_400_000;
+
+/** Serviço com o nome do papel, pronto dez dias antes da entrega padrão. */
+export const servico = (papel: Papel, custo: number, ...competencias: [string, number][]): ServicoAtomico =>
+  new ServicoAtomico({
+    nome: papel,
+    custoBase: custo,
+    prazoBase: new Date(PRAZO.getTime() - 10 * DIA_EM_MS),
+    papelNecessario: papel,
+    competenciasDesejadas: competencias.map(([nome, nivel]) => new Competencia(nome, nivel)),
+  });
+
+export const servicos = (...filhos: ServicoProjeto[]): PacoteServico => new PacoteServico('Projeto', filhos);
 
 const construtores = {
   documentario: (dados) => new ProjetoDocumentario({ ...dados, tema: 'Migração no sertão', entrevistados: ['Dona Socorro'] }),
@@ -34,13 +45,13 @@ export function criarProjeto(dados: Partial<DadosProjeto> = {}, tipo: TipoDeTest
     produtor: 'produtora@exemplo.com',
     genero: 'drama social',
     duracao: 90,
-    papeis: [
-      requisito(Papel.DIRETOR, 5, ['documentario', 9], ['narrativa', 8]),
-      requisito(Papel.DIRETOR_FOTOGRAFIA, 3, ['camera', 8]),
-      requisito(Papel.SONOPLASTA, 2, ['captacao de som', 8]),
-      requisito(Papel.EDITOR, 3, ['montagem', 8]),
-      requisito(Papel.ROTEIRISTA, 4, ['pesquisa', 9]),
-    ],
+    servicoPrincipal: servicos(
+      servico(Papel.DIRETOR, 5, ['documentario', 9], ['narrativa', 8]),
+      servico(Papel.DIRETOR_FOTOGRAFIA, 3, ['camera', 8]),
+      servico(Papel.SONOPLASTA, 2, ['captacao de som', 8]),
+      servico(Papel.EDITOR, 3, ['montagem', 8]),
+      servico(Papel.ROTEIRISTA, 4, ['pesquisa', 9]),
+    ),
     restricoes: { orcamento: 120_000, prazo: PRAZO, localizacao: 'Recife' },
     ...dados,
   });

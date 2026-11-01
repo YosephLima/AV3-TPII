@@ -1,12 +1,16 @@
 {
   "info": {
-    "name": "cinebridge AV2",
+    "name": "cinebridge AV3",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000"
+    },
+    {
+      "key": "projetoId",
+      "value": ""
     }
   ],
   "item": [
@@ -86,10 +90,21 @@
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('projetoId', pm.response.json().projetoId);"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Recomendação: animação",
+      "name": "Recomendação: animação com árvore de serviços",
       "request": {
         "method": "POST",
         "header": [
@@ -109,14 +124,25 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tipo\": \"animacao\",\n  \"nome\": \"Curta de Animação\",\n  \"produtor\": \"estudio@exemplo.com\",\n  \"duracao\": 15,\n  \"orcamento\": 80000,\n  \"prazo\": \"2027-03-30\",\n  \"papeis\": [\n    {\n      \"papel\": \"DIRETOR\",\n      \"peso\": 3,\n      \"competencias\": [\n        {\n          \"nome\": \"animacao\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"storyboard\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EFEITOS_VISUAIS\",\n      \"peso\": 4,\n      \"competencias\": [\n        {\n          \"nome\": \"modelagem 3d\",\n          \"nivel\": 9\n        },\n        {\n          \"nome\": \"blender\",\n          \"nivel\": 8\n        }\n      ]\n    },\n    {\n      \"papel\": \"EDITOR\",\n      \"peso\": 1\n    }\n  ],\n  \"detalhes\": {\n    \"tecnica\": \"3d\",\n    \"quadrosPorSegundo\": 24\n  }\n}",
+          "raw": "{\n  \"tipo\": \"animacao\",\n  \"nome\": \"Curta de Animação\",\n  \"produtor\": \"estudio@exemplo.com\",\n  \"duracao\": 15,\n  \"orcamento\": 80000,\n  \"prazo\": \"2027-03-30\",\n  \"servico\": {\n    \"nome\": \"Curta de Animação\",\n    \"servicos\": [\n      {\n        \"nome\": \"Pré-produção\",\n        \"servicos\": [\n          {\n            \"nome\": \"Direção e storyboard\",\n            \"papel\": \"DIRETOR\",\n            \"custo\": 18000,\n            \"prazo\": \"2026-12-15\",\n            \"competencias\": [\n              {\n                \"nome\": \"animacao\",\n                \"nivel\": 9\n              },\n              {\n                \"nome\": \"storyboard\",\n                \"nivel\": 8\n              }\n            ]\n          }\n        ]\n      },\n      {\n        \"nome\": \"Produção\",\n        \"servicos\": [\n          {\n            \"nome\": \"Modelagem 3D\",\n            \"papel\": \"EFEITOS_VISUAIS\",\n            \"custo\": 24000,\n            \"prazo\": \"2027-02-15\",\n            \"competencias\": [\n              {\n                \"nome\": \"modelagem 3d\",\n                \"nivel\": 9\n              },\n              {\n                \"nome\": \"blender\",\n                \"nivel\": 8\n              }\n            ]\n          }\n        ]\n      },\n      {\n        \"nome\": \"Pós-produção\",\n        \"servicos\": [\n          {\n            \"nome\": \"Montagem\",\n            \"papel\": \"EDITOR\",\n            \"custo\": 6000,\n            \"prazo\": \"2027-03-20\"\n          },\n          {\n            \"nome\": \"Som\",\n            \"servicos\": [\n              {\n                \"nome\": \"Foley\",\n                \"papel\": \"SONOPLASTA\",\n                \"custo\": 3000,\n                \"prazo\": \"2027-03-10\",\n                \"competencias\": [\n                  {\n                    \"nome\": \"foley\",\n                    \"nivel\": 7\n                  }\n                ]\n              },\n              {\n                \"nome\": \"Mixagem\",\n                \"papel\": \"SONOPLASTA\",\n                \"custo\": 3000,\n                \"prazo\": \"2027-03-25\",\n                \"competencias\": [\n                  {\n                    \"nome\": \"mixagem\",\n                    \"nivel\": 8\n                  }\n                ]\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  },\n  \"detalhes\": {\n    \"tecnica\": \"3d\",\n    \"quadrosPorSegundo\": 24\n  }\n}",
           "options": {
             "raw": {
               "language": "json"
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('projetoId', pm.response.json().projetoId);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Recomendação: publicitário a partir de modelo",
@@ -146,6 +172,75 @@
             }
           }
         }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('projetoId', pm.response.json().projetoId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recomendação: ficção com pilha de decoradores",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"ficcao\",\n  \"nome\": \"Longa de estreia\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"orcamento\": 320000,\n  \"decoradores\": [\n    \"auditoria\",\n    \"cache\",\n    \"compressao\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('projetoId', pm.response.json().projetoId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultar a última recomendação guardada",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes/{{projetoId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes",
+            "{{projetoId}}"
+          ]
+        }
       }
     },
     {
@@ -170,6 +265,36 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"tipo\": \"publicitario\",\n  \"nome\": \"Sem cliente\",\n  \"produtor\": \"agencia@exemplo.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Erro 422: serviço depois da entrega",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/recomendacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "recomendacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"documentario\",\n  \"nome\": \"Atrasado\",\n  \"produtor\": \"produtora@exemplo.com\",\n  \"prazo\": \"2027-03-30\",\n  \"detalhes\": {\n    \"tema\": \"Rios\",\n    \"entrevistados\": [\n      \"Ana\"\n    ]\n  },\n  \"servico\": {\n    \"nome\": \"Documentário\",\n    \"servicos\": [\n      {\n        \"nome\": \"Direção\",\n        \"papel\": \"DIRETOR\",\n        \"custo\": 30000,\n        \"prazo\": \"2027-02-01\"\n      },\n      {\n        \"nome\": \"Pós-produção\",\n        \"servicos\": [\n          {\n            \"nome\": \"Montagem\",\n            \"papel\": \"EDITOR\",\n            \"custo\": 18000,\n            \"prazo\": \"2027-05-01\"\n          }\n        ]\n      }\n    ]\n  }\n}",
           "options": {
             "raw": {
               "language": "json"

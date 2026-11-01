@@ -18,10 +18,10 @@ export class OrquestradorPadrao extends OrquestradorEquipe {
     return profissionais.filter((p) => p.podeIniciarAte(projeto.prazo) && p.precoMedio <= projeto.orcamento);
   }
 
-  /** Ninguém pega dois papéis (o de maior peso escolhe primeiro) e cada papel mostra no máximo 5 opções. */
+  /** Ninguém pega dois papéis (o de maior custo escolhe primeiro) e cada papel mostra no máximo 5 opções. */
   protected posProcessar(projeto: Projeto, recomendacoes: Recomendacoes): Recomendacoes {
     const porPeso = [...recomendacoes.keys()].sort(
-      (a, b) => (projeto.requisito(b)?.peso ?? 0) - (projeto.requisito(a)?.peso ?? 0),
+      (a, b) => (projeto.requisito(b)?.custo ?? 0) - (projeto.requisito(a)?.custo ?? 0),
     );
     const escolhidos = new Set<string>();
     const ajustadas: Recomendacoes = new Map();

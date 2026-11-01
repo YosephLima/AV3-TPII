@@ -6,6 +6,8 @@ export type Recomendacoes = Map<Papel, Profissional[]>;
 
 export class MembroEquipe {
   private _confirmado = false;
+  /** Id do pagamento no provedor, depois que a equipe é formada. */
+  pagamentoId: string | undefined;
 
   constructor(
     readonly papel: Papel,

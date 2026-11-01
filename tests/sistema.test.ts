@@ -3,7 +3,7 @@ import { Papel } from '../src/dominio/Papel';
 import { RegrasOrcamento } from '../src/estrategias/RegrasOrcamento';
 import { SimilaridadeCosseno } from '../src/estrategias/SimilaridadeCosseno';
 import { SemCandidatoError } from '../src/SistemaRecomendacao';
-import { criarProjeto, PRAZO, requisito, sistemaDeTeste } from './fixtures';
+import { criarProjeto, PRAZO, servico, servicos, sistemaDeTeste } from './fixtures';
 
 const eventos = (linhas: string[]) => linhas.map((l) => (JSON.parse(l) as { evento: string }).evento);
 
@@ -56,7 +56,7 @@ describe('SistemaRecomendacao', () => {
   it('quem já foi substituído não volta, e sem candidatos a substituição falha', async () => {
     const { sistema } = sistemaDeTeste();
     // Diretores de fotografia disponíveis até o prazo: Diego (p04) e Elisa (p05).
-    const projeto = criarProjeto({ papeis: [requisito(Papel.DIRETOR_FOTOGRAFIA, 1, ['camera', 8])] });
+    const projeto = criarProjeto({ servicoPrincipal: servicos(servico(Papel.DIRETOR_FOTOGRAFIA, 1, ['camera', 8])) });
     await sistema.executarRecomendacao(projeto);
 
     const segundo = await sistema.substituirMembro(projeto, Papel.DIRETOR_FOTOGRAFIA);
@@ -66,7 +66,7 @@ describe('SistemaRecomendacao', () => {
 
   it('convite recusado dispara substituição; todos aceitos formam a equipe', async () => {
     const { sistema, linhasAuditoria, emails } = sistemaDeTeste();
-    const projeto = criarProjeto({ papeis: [requisito(Papel.DIRETOR, 2), requisito(Papel.SONOPLASTA, 1)] });
+    const projeto = criarProjeto({ servicoPrincipal: servicos(servico(Papel.DIRETOR, 2), servico(Papel.SONOPLASTA, 1)) });
     await sistema.executarRecomendacao(projeto);
     const recusou = projeto.equipe?.membro(Papel.SONOPLASTA)?.profissional.id;
 

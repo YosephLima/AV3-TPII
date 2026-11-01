@@ -8,7 +8,8 @@ import { ProjetoPublicitario } from '../src/dominio/ProjetoPublicitario';
 import { SimilaridadeCosseno } from '../src/estrategias/SimilaridadeCosseno';
 import { modelosAnimacao, modelosDocumentario, modelosFiccao, modelosPublicitario } from '../src/prototipos/modelos';
 import { ModeloDesconhecidoError, RegistroPrototipos } from '../src/prototipos/RegistroPrototipos';
-import { criarProjeto, PRAZO, profissional } from './fixtures';
+import type { PacoteServico } from '../src/servicos/PacoteServico';
+import { criarProjeto, PRAZO, profissional, servico } from './fixtures';
 
 describe('Prototype', () => {
   describe('clonar', () => {
@@ -25,28 +26,39 @@ describe('Prototype', () => {
       });
     });
 
-    it('a cópia é profunda: papéis, competências e restrições não são compartilhados', () => {
+    it('a cópia é profunda: serviços, competências e restrições não são compartilhados', () => {
       const original = criarProjeto();
       const clone = original.clonar();
 
       expect(clone.papeis).toEqual(original.papeis);
-      expect(clone.papeis).not.toBe(original.papeis);
-      expect(clone.papeis[0]).not.toBe(original.papeis[0]);
-      expect(clone.papeis[0]?.competenciasDesejadas[0]).not.toBe(original.papeis[0]?.competenciasDesejadas[0]);
+      expect(clone.servicoPrincipal).not.toBe(original.servicoPrincipal);
+      const [atomicoClone] = clone.servicoPrincipal.servicosAtomicos();
+      const [atomicoOriginal] = original.servicoPrincipal.servicosAtomicos();
+      expect(atomicoClone).not.toBe(atomicoOriginal);
+      expect(atomicoClone?.prazoBase).not.toBe(atomicoOriginal?.prazoBase);
+      expect(atomicoClone?.competenciasDesejadas[0]).not.toBe(atomicoOriginal?.competenciasDesejadas[0]);
       expect(clone.restricoes).not.toBe(original.restricoes);
       expect(clone.prazo).not.toBe(original.prazo);
       expect(clone.prazo.getTime()).toBe(original.prazo.getTime());
 
-      const papel = clone.papeis[0];
-      if (papel) papel.peso = 99;
-      clone.papeis.push({ papel: Papel.EFEITOS_VISUAIS, peso: 1, competenciasDesejadas: [] });
+      (clone.servicoPrincipal as PacoteServico).adicionarServico(servico(Papel.EFEITOS_VISUAIS, 1));
+      atomicoClone?.prazoBase.setFullYear(2030);
       clone.restricoes.orcamento = 1;
       clone.prazo.setFullYear(2030);
 
-      expect(original.papeis[0]?.peso).toBe(5);
       expect(original.papeis).toHaveLength(5);
+      expect(atomicoOriginal?.prazoBase.getFullYear()).toBe(2027);
       expect(original.orcamento).toBe(120_000);
       expect(original.prazo).toEqual(PRAZO);
+    });
+
+    it('mudar só a entrega leva junto os prazos dos serviços', () => {
+      const original = criarProjeto();
+      const clone = original.clonar({ restricoes: { prazo: new Date('2027-04-29') } });
+      const diferenca = clone.prazo.getTime() - original.prazo.getTime();
+
+      expect(clone.servicoPrincipal.obterPrazo().getTime() - original.servicoPrincipal.obterPrazo().getTime()).toBe(diferenca);
+      expect(clone.validarEstrutura()).toBe(true);
     });
 
     it('atributos específicos também são copiados sem compartilhar listas', () => {

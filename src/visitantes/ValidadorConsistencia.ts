@@ -34,10 +34,7 @@ export class ValidadorConsistencia implements ValidadorProjeto {
   protected validarRestricoes(projeto: Projeto): void {
     if (projeto.orcamento <= 0) this.registrarErro('Orçamento deve ser positivo');
     if (projeto.duracao <= 0) this.registrarErro('Duração deve ser positiva');
-    if (projeto.papeis.length === 0) this.registrarErro('Projeto sem papéis técnicos');
-    for (const { papel, peso } of projeto.papeis) {
-      if (peso <= 0) this.registrarErro(`Papel ${papel} sem peso`);
-    }
+    for (const problema of projeto.problemasEstrutura()) this.registrarErro(problema);
   }
 
   /** Cada família sobrescreve com as suas regras. */

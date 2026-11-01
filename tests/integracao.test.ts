@@ -11,7 +11,7 @@ import { construirApp } from '../src/http/app';
 import type { Email } from '../src/observadores/NotificadorEmail';
 import { OrquestradorPadrao } from '../src/orquestracao/OrquestradorPadrao';
 import type { SolicitacaoRecomendacao } from '../src/SistemaRecomendacao';
-import { PRAZO, requisito } from './fixtures';
+import { PRAZO, servico, servicos } from './fixtures';
 import { FabricaRealidadeVirtual, ProjetoRealidadeVirtual } from './realidadeVirtual';
 
 function sistemaCapturandoEmails(comRealidadeVirtual = false) {
@@ -57,13 +57,13 @@ describe('Integração: alternar fábricas produz ecossistemas coerentes com o t
   });
 
   it('o mesmo OrquestradorPadrao ranqueia de forma diferente conforme a fábrica recebida', async () => {
-    const { repositorio, fabricas } = sistemaCapturandoEmails();
-    const papeis = [requisito(Papel.DIRETOR_FOTOGRAFIA, 1, ['iluminacao', 8], ['camera', 8])];
+    const { adaptadores, fabricas } = sistemaCapturandoEmails();
+    const servicoPrincipal = servicos(servico(Papel.DIRETOR_FOTOGRAFIA, 1, ['iluminacao', 8], ['camera', 8]));
     const prazo = new Date('2027-12-01');
     const fotografoPara = async (tipo: string, detalhes = {}) => {
       const fabrica = fabricas.para(tipo);
-      const projeto = fabrica.criarProjeto({ ...comum, papeis, restricoes: { prazo }, detalhes });
-      const equipe = await new OrquestradorPadrao(fabrica, repositorio).orquestrar(projeto);
+      const projeto = fabrica.criarProjeto({ ...comum, servicoPrincipal, restricoes: { prazo }, detalhes });
+      const equipe = await new OrquestradorPadrao(fabrica, adaptadores.profissional).orquestrar(projeto);
       return equipe.membro(Papel.DIRETOR_FOTOGRAFIA)?.profissional.id;
     };
 
@@ -87,8 +87,8 @@ describe('Integração: alternar fábricas produz ecossistemas coerentes com o t
 
 describe('Extensibilidade: tipo novo (realidade virtual) sem tocar no orquestrador nem no sistema', () => {
   it('basta registrar a fábrica: o fluxo completo funciona, inclusive pela API', async () => {
-    const { sistema, repositorio, emails } = sistemaCapturandoEmails(true);
-    const app = construirApp({ sistema, repositorio });
+    const { sistema, adaptadores, emails } = sistemaCapturandoEmails(true);
+    const app = construirApp({ sistema });
 
     const resposta = await app.inject({
       method: 'POST',

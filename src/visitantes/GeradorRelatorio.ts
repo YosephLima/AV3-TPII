@@ -14,7 +14,7 @@ export class GeradorRelatorio implements VisitanteProjeto<string> {
   visitarProjeto(projeto: Projeto): string {
     const linhas = [
       `Projeto: ${projeto.nome} (${projeto.tipo}, ${projeto.genero}, ${projeto.duracao} min)`,
-      `Orçamento: ${formatarMoeda(projeto.orcamento)} | Entrega: ${projeto.prazo.toISOString().slice(0, 10)} | Local: ${projeto.restricoes.localizacao}`,
+      `Orçamento: ${formatarMoeda(projeto.orcamento)} | Serviços: ${formatarMoeda(projeto.calcularCustoTotal())} | Entrega: ${projeto.prazo.toISOString().slice(0, 10)} | Local: ${projeto.restricoes.localizacao}`,
       ...this.linhasDoTipo(projeto),
     ];
 
@@ -22,11 +22,11 @@ export class GeradorRelatorio implements VisitanteProjeto<string> {
     if (!equipe) return [...linhas, 'Equipe: ainda não recomendada'].join('\n');
 
     linhas.push(`Equipe (${equipe.status}):`);
-    for (const { papel, peso } of projeto.papeis) {
+    for (const { papel, custo } of projeto.papeis) {
       const membro = equipe.membro(papel);
       const descricao = membro ? membro.profissional.aceitar(this) : 'sem candidato';
       const confirmado = membro?.confirmado ? ' [confirmado]' : '';
-      linhas.push(`  - ${papel} (peso ${peso}): ${descricao}${confirmado}`);
+      linhas.push(`  - ${papel} (serviços de ${formatarMoeda(custo)}): ${descricao}${confirmado}`);
     }
 
     const consistente = projeto.aceitar(this.validador);

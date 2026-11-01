@@ -1,0 +1,241 @@
+@startuml
+!theme plain
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+}
+skinparam stereotype {
+  BackgroundColor White
+  BorderColor Black
+}
+title cinebridge AV3: diagrama de classes refinado (padrões estruturais)
+
+' ---------- Sistemas externos simulados ----------
+package "externos (simulados)" {
+  class S3Simulado {
+    +putObject(params): Promise<{ETag}>
+    +getObject(params): Promise<ObjetoS3>
+    +listObjectsV2(params): Promise<pagina>
+  }
+  class GoogleCloudStorageSimulado {
+    +bucket(nome): Bucket
+  }
+  class StripeSimulado {
+    +paymentIntents.create(params): Promise<PaymentIntent>
+    +paymentIntents.retrieve(id): Promise<PaymentIntent>
+    +refunds.create(params): Promise<Refund>
+  }
+  class PagSeguroSimulado {
+    +criarCobranca(pedido): Promise<resposta>
+    +estornar(codigo): Promise<resposta>
+    +consultar(codigo): Promise<Cobranca | null>
+  }
+  class LinkedInSimulado {
+    +searchPeople(params): Promise<pagina>
+    +getProfile(urn): Promise<PerfilLinkedIn>
+    +addRecommendation(urn, recomendacao): Promise<void>
+  }
+}
+
+' ---------- Adapter ----------
+interface AdaptadorArmazenamento {
+  +provedor: string
+  +salvarArquivo(conteudo: Buffer, metadados: MetadadosArquivo): Promise<string>
+  +recuperarArquivo(id: string): Promise<Buffer>
+  +listarArquivos(prefixo: string): Promise<string[]>
+}
+class AdaptadorS3
+class AdaptadorGoogleCloud
+class AdaptadorLocal
+
+interface AdaptadorPagamento {
+  +provedor: string
+  +efetuarPagamento(valor: number, origem: string, destino: string): Promise<string>
+  +cancelarPagamento(id: string): Promise<boolean>
+  +verificarPagamento(id: string): Promise<StatusPagamento>
+}
+class AdaptadorStripe
+class AdaptadorPagSeguro
+
+interface AdaptadorProfissional {
+  +provedor: string
+  +listarProfissionais(criterios?: CriteriosBusca): Promise<Profissional[]>
+  +detalharProfissional(id: string): Promise<Profissional>
+  +registrarAvaliacao(id: string, avaliacao: Avaliacao): Promise<void>
+}
+class AdaptadorInterno
+class AdaptadorLinkedIn
+interface RepositorioProfissionais {
+  +listar(): Promise<Profissional[]>
+  +registrarAvaliacao(id: string, avaliacao: Avaliacao): Promise<void>
+}
+
+AdaptadorArmazenamento <|.. AdaptadorS3
+AdaptadorArmazenamento <|.. AdaptadorGoogleCloud
+AdaptadorArmazenamento <|.. AdaptadorLocal
+AdaptadorPagamento <|.. AdaptadorStripe
+AdaptadorPagamento <|.. AdaptadorPagSeguro
+AdaptadorProfissional <|.. AdaptadorInterno
+AdaptadorProfissional <|.. AdaptadorLinkedIn
+
+AdaptadorS3 --> "1" S3Simulado : adapta
+AdaptadorGoogleCloud --> "1" GoogleCloudStorageSimulado : adapta
+AdaptadorStripe --> "1" StripeSimulado : adapta
+AdaptadorPagSeguro --> "1" PagSeguroSimulado : adapta
+AdaptadorLinkedIn --> "1" LinkedInSimulado : adapta
+AdaptadorInterno --> "1" RepositorioProfissionais : adapta
+note bottom of AdaptadorLocal : usa o sistema de arquivos (node:fs)
+
+' ---------- Composite ----------
+interface ServicoProjeto {
+  +nome: string
+  +calcularCusto(): number
+  +listarSubservicos(): ServicoProjeto[]
+  +obterPrazo(): Date
+  +validar(): boolean
+  +problemas(caminho?: string[]): string[]
+  +servicosAtomicos(): ServicoAtomico[]
+  +contem(servico: ServicoProjeto): boolean
+  +clonar(deslocamento?: number): ServicoProjeto
+}
+class ServicoAtomico {
+  +id: string
+  +nome: string
+  +custoBase: number
+  +prazoBase: Date
+  +papelNecessario: Papel
+  +competenciasDesejadas: Competencia[]
+}
+class PacoteServico {
+  +nome: string
+  -servicos: ServicoProjeto[]
+  +adicionarServico(servico: ServicoProjeto): this
+  +removerServico(servico: ServicoProjeto): boolean
+}
+ServicoProjeto <|.. ServicoAtomico
+ServicoProjeto <|.. PacoteServico
+PacoteServico "1" *-- "0..*" ServicoProjeto : contém
+ServicoAtomico "1" --> "1" Papel : exige
+
+abstract class Projeto {
+  +id: string
+  +tipo: string {abstract}
+  +genero: string
+  +servicoPrincipal: ServicoProjeto
+  +restricoes: Restricoes
+  +estrategia: RecomendacaoStrategy [0..1]
+  +decoradores: string[] [0..1]
+  +papeis: RequisitoPapel[] {derivado das folhas}
+  +calcularCustoTotal(): number
+  +validarEstrutura(): boolean
+  +problemasEstrutura(): string[]
+  +tetoPorPapel(papel: Papel): number
+  +clonar(ajustes?): Projeto {abstract}
+}
+Projeto "1" --> "1" ServicoProjeto : servicoPrincipal
+Projeto "1" --> "0..1" Equipe : resulta
+note right of Projeto : As subclasses da AV2 (documentário, animação,\npublicitário, ficção) continuam iguais.
+
+' ---------- Strategy + Decorator ----------
+interface RecomendacaoStrategy {
+  +nome: string
+  +recomendar(projeto: Projeto, profissionais: Profissional[]): Map<Papel, Profissional[]>
+}
+class RecomendadorBase {
+  #pontuar(requisito, profissional): number
+  #aderencia(requisito, profissional): number
+}
+class RecomendadorDocumentario
+class RecomendadorAnimacao
+class RecomendadorPublicitario
+abstract class DecoradorRecomendacao {
+  #recomendador: RecomendacaoStrategy
+  +nome: string {da estratégia envolvida}
+  +descricao: string
+}
+class CacheDecorator {
+  -cache: ArmazemCache
+}
+class AuditoriaDecorator {
+  -registro: RegistroChamadas
+  -relogio: Relogio
+}
+class CompressaoDecorator {
+  -canal: CanalSaida
+  -nivelCompressao: number
+  -tamanhoMinimo: number
+}
+class ArmazemCache {
+  -entradas: Map<string, Recomendacoes>
+  +capacidade: number
+  +validadeMs: number
+}
+class RegistroChamadas {
+  +limite: number
+}
+interface CanalSaida {
+  +enviar(conteudo: Buffer, info: InfoEnvio): void
+}
+class CanalArmazenamento
+class PoliticaDecoradores {
+  +pilhaPadrao: string[]
+  +definirPadrao(pilha: string[]): void
+  +decorar(base: RecomendacaoStrategy, pilha?: string[]): RecomendacaoStrategy
+  +paraProjeto(base, projeto): RecomendacaoStrategy
+}
+
+RecomendacaoStrategy <|.. RecomendadorBase
+RecomendadorBase <|-- RecomendadorDocumentario
+RecomendadorBase <|-- RecomendadorAnimacao
+RecomendadorBase <|-- RecomendadorPublicitario
+RecomendacaoStrategy <|.. DecoradorRecomendacao
+DecoradorRecomendacao <|-- CacheDecorator
+DecoradorRecomendacao <|-- AuditoriaDecorator
+DecoradorRecomendacao <|-- CompressaoDecorator
+DecoradorRecomendacao o-- "1" RecomendacaoStrategy : envolve
+CacheDecorator --> "1" ArmazemCache
+AuditoriaDecorator --> "1" RegistroChamadas
+CompressaoDecorator --> "1" CanalSaida
+CanalSaida <|.. CanalArmazenamento
+CanalArmazenamento --> AdaptadorArmazenamento : grava o ranking comprimido
+PoliticaDecoradores ..> DecoradorRecomendacao : monta a pilha
+
+' ---------- Cliente ----------
+class SistemaRecomendacao {
+  -adaptadorArmazenamento: AdaptadorArmazenamento
+  -adaptadorPagamento: AdaptadorPagamento
+  -adaptadorProfissional: AdaptadorProfissional
+  -estrategiaAtual: RecomendacaoStrategy [0..1]
+  -decorar: DecorarEstrategia
+  +executarRecomendacao(projeto: Projeto): Promise<Equipe>
+  +definirEstrategia(estrategia: RecomendacaoStrategy): void
+  +configurarAdaptadores(armazenamento, pagamento, profissional): void
+  +estrategiaPara(projeto: Projeto): RecomendacaoStrategy
+  +consultarRecomendacao(projetoId: string): Promise<RecomendacaoArquivada>
+  +responderConvite(projeto, papel, aceito): Promise<void>
+  +reavaliar(projeto: Projeto): Promise<Equipe>
+}
+class OrquestradorEquipe {
+  +orquestrar(projeto, estrategia?, opcoes?): Promise<Equipe>
+}
+class ArquivoRecomendacoes {
+  +guardar(projeto, equipe): Promise<string>
+  +consultar(projetoId): Promise<RecomendacaoArquivada>
+}
+class PagamentoEquipe {
+  +pagar(projeto, equipe): Promise<void>
+  +estornar(equipe): Promise<number>
+}
+
+SistemaRecomendacao --> AdaptadorArmazenamento : utiliza
+SistemaRecomendacao --> AdaptadorPagamento : utiliza
+SistemaRecomendacao --> AdaptadorProfissional : utiliza
+SistemaRecomendacao --> RecomendacaoStrategy : utiliza
+SistemaRecomendacao ..> ArquivoRecomendacoes : delega
+SistemaRecomendacao ..> PagamentoEquipe : delega
+SistemaRecomendacao ..> OrquestradorEquipe : cria por fábrica
+ArquivoRecomendacoes --> AdaptadorArmazenamento
+PagamentoEquipe --> AdaptadorPagamento
+OrquestradorEquipe --> AdaptadorProfissional : busca candidatos
+@enduml

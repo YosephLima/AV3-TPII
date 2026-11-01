@@ -4,7 +4,7 @@ import { FiltragemColaborativa } from '../src/estrategias/FiltragemColaborativa'
 import type { RecomendacaoStrategy } from '../src/estrategias/RecomendacaoStrategy';
 import { RegrasOrcamento } from '../src/estrategias/RegrasOrcamento';
 import { SimilaridadeCosseno } from '../src/estrategias/SimilaridadeCosseno';
-import { criarProjeto, PRAZO, profissional, requisito } from './fixtures';
+import { criarProjeto, PRAZO, profissional, servico, servicos } from './fixtures';
 
 // Ana: a mais bem avaliada e a mais cara. Bruno: o mais barato. Carla: especialista em animação.
 const diretores = () => [profissional('p01'), profissional('p02'), profissional('p03')];
@@ -12,7 +12,7 @@ const diretores = () => [profissional('p01'), profissional('p02'), profissional(
 const projetoDeAnimacao = (orcamento: number) =>
   criarProjeto(
     {
-      papeis: [requisito(Papel.DIRETOR, 1, ['animacao', 8], ['storyboard', 7])],
+      servicoPrincipal: servicos(servico(Papel.DIRETOR, 1, ['animacao', 8], ['storyboard', 7])),
       restricoes: { orcamento, prazo: PRAZO, localizacao: 'São Paulo' },
     },
     'animacao',
@@ -44,7 +44,7 @@ describe('Strategy', () => {
 
   it('a fatia do orçamento de cada papel é proporcional ao peso', () => {
     const projeto = criarProjeto({
-      papeis: [requisito(Papel.DIRETOR, 3), requisito(Papel.EDITOR, 1)],
+      servicoPrincipal: servicos(servico(Papel.DIRETOR, 3), servico(Papel.EDITOR, 1)),
       restricoes: { orcamento: 40_000, prazo: PRAZO, localizacao: 'SP' },
     });
     expect(projeto.tetoPorPapel(Papel.DIRETOR)).toBe(30_000);

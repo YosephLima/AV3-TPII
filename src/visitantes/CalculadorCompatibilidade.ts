@@ -4,7 +4,7 @@ import type { Projeto } from '../dominio/Projeto';
 import type { VisitanteProjeto } from './VisitanteProjeto';
 
 /**
- * De 0 a 1. No profissional é a reputação (nota / 5); no projeto, a média ponderada pelo peso dos papéis de
+ * De 0 a 1. No profissional é a reputação (nota / 5); no projeto, a média ponderada pelo custo dos papéis de
  * 70% aderência técnica e 30% reputação.
  */
 export class CalculadorCompatibilidade implements VisitanteProjeto<number> {
@@ -15,17 +15,17 @@ export class CalculadorCompatibilidade implements VisitanteProjeto<number> {
     if (!equipe) return 0;
 
     let soma = 0;
-    let pesoTotal = 0;
+    let custoTotal = 0;
     for (const requisito of projeto.papeis) {
-      pesoTotal += requisito.peso;
+      custoTotal += requisito.custo;
       const membro = equipe.membro(requisito.papel);
       if (!membro) continue;
       const tecnico = cosseno(vetorDe(requisito.competenciasDesejadas), membro.profissional.vetorCompetencias());
       const reputacao = membro.profissional.aceitar(this);
       const k = CalculadorCompatibilidade.PESO_TECNICO;
-      soma += requisito.peso * (k * tecnico + (1 - k) * reputacao);
+      soma += requisito.custo * (k * tecnico + (1 - k) * reputacao);
     }
-    return pesoTotal === 0 ? 0 : soma / pesoTotal;
+    return custoTotal === 0 ? 0 : soma / custoTotal;
   }
 
   visitarProfissional(profissional: Profissional): number {

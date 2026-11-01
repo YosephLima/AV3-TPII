@@ -5,12 +5,12 @@ import { Profissional } from '../src/dominio/Profissional';
 import { CalculadorCompatibilidade } from '../src/visitantes/CalculadorCompatibilidade';
 import { GeradorRelatorio } from '../src/visitantes/GeradorRelatorio';
 import { ValidadorConsistencia } from '../src/visitantes/ValidadorConsistencia';
-import { criarProjeto, PRAZO, profissional, requisito } from './fixtures';
+import { criarProjeto, PRAZO, profissional, servico, servicos } from './fixtures';
 
 /** Projeto pequeno com equipe montada à mão: diretor e editor. */
 function projetoComEquipe(diretor = 'p02', editor = 'p09') {
   const projeto = criarProjeto({
-    papeis: [requisito(Papel.DIRETOR, 2, ['documentario', 9]), requisito(Papel.EDITOR, 1, ['montagem', 9])],
+    servicoPrincipal: servicos(servico(Papel.DIRETOR, 2, ['documentario', 9]), servico(Papel.EDITOR, 1, ['montagem', 9])),
     restricoes: { orcamento: 30_000, prazo: PRAZO, localizacao: 'Recife' },
   });
   projeto.definirEquipe(
@@ -28,7 +28,7 @@ describe('Visitor', () => {
 
     expect(projeto.aceitar(new ValidadorConsistencia())).toBe(true);
     expect(projeto.aceitar(new CalculadorCompatibilidade())).toBeGreaterThan(0.5);
-    expect(projeto.aceitar(new GeradorRelatorio())).toContain('DIRETOR (peso 2): Bruno Tavares');
+    expect(projeto.aceitar(new GeradorRelatorio())).toMatch(/DIRETOR \(serviços de R\$\s2,00\): Bruno Tavares/);
   });
 
   describe('ValidadorConsistencia', () => {
@@ -37,7 +37,7 @@ describe('Visitor', () => {
       projeto.equipe?.membros.pop();
       projeto.equipe?.substituir(Papel.SONOPLASTA, profissional('p07'));
       const comOrcamentoBaixo = criarProjeto({
-        papeis: projeto.papeis,
+        servicoPrincipal: projeto.servicoPrincipal.clonar(),
         restricoes: { orcamento: 10_000, prazo: PRAZO, localizacao: 'SP' },
       });
       if (projeto.equipe) comOrcamentoBaixo.definirEquipe(projeto.equipe);
@@ -56,17 +56,17 @@ describe('Visitor', () => {
 
       const invalido = criarProjeto({
         duracao: 0,
-        papeis: [requisito(Papel.DIRETOR, 0)],
+        servicoPrincipal: servicos(servico(Papel.DIRETOR, 0)),
         restricoes: { orcamento: 0, prazo: PRAZO, localizacao: 'SP' },
       });
       expect(invalido.aceitar(validador)).toBe(false);
       expect(validador.erros).toEqual([
         'Orçamento deve ser positivo',
         'Duração deve ser positiva',
-        'Papel DIRETOR sem peso',
+        'Projeto > DIRETOR: custo deve ser positivo',
       ]);
-      expect(criarProjeto({ papeis: [] }).aceitar(validador)).toBe(false);
-      expect(validador.erros).toEqual(['Projeto sem papéis técnicos']);
+      expect(criarProjeto({ servicoPrincipal: servicos() }).aceitar(validador)).toBe(false);
+      expect(validador.erros).toEqual(['Projeto: pacote vazio']);
     });
 
     it('aponta cadastro de profissional inconsistente', () => {
@@ -108,7 +108,7 @@ describe('Visitor', () => {
       const relatorio = projeto.aceitar(new GeradorRelatorio());
 
       expect(relatorio).toContain('Projeto: Vozes do Sertão (documentario, drama social, 90 min)');
-      expect(relatorio).toContain('EDITOR (peso 1): Isabela Rocha');
+      expect(relatorio).toMatch(/EDITOR \(serviços de R\$\s1,00\): Isabela Rocha/);
       expect(relatorio).toContain('[confirmado]');
       expect(relatorio).toContain('Consistência: ok');
     });

@@ -5,11 +5,12 @@ import type { Projeto, RequisitoPapel } from '../dominio/Projeto';
 import type { RecomendacaoStrategy } from './RecomendacaoStrategy';
 
 /**
- * Base dos recomendadores das famílias: respeita a fatia do orçamento de cada papel e ordena pela pontuação
- * de cada família.
+ * Lógica principal de recomendação: cada papel só aceita quem cabe na sua fatia do orçamento, ordenado pela
+ * pontuação. Sozinho, pontua pela aderência técnica; as famílias estendem e trocam só a pontuação. É o objeto
+ * que os decoradores envolvem.
  */
-export abstract class RecomendadorPorPontuacao implements RecomendacaoStrategy {
-  abstract readonly nome: string;
+export class RecomendadorBase implements RecomendacaoStrategy {
+  readonly nome: string = 'base';
 
   recomendar(projeto: Projeto, profissionais: Profissional[]): Recomendacoes {
     const recomendacoes: Recomendacoes = new Map();
@@ -25,7 +26,9 @@ export abstract class RecomendadorPorPontuacao implements RecomendacaoStrategy {
     return recomendacoes;
   }
 
-  protected abstract pontuar(requisito: RequisitoPapel, profissional: Profissional): number;
+  protected pontuar(requisito: RequisitoPapel, profissional: Profissional): number {
+    return this.aderencia(requisito, profissional);
+  }
 
   /** Cosseno entre o que o papel pede e o que o profissional sabe (0 a 1). */
   protected aderencia(requisito: RequisitoPapel, profissional: Profissional): number {

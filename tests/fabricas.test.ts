@@ -31,7 +31,7 @@ import { NotificadorConvite } from '../src/observadores/NotificadorConvite';
 import type { Email } from '../src/observadores/NotificadorEmail';
 import { GeradorRelatorio } from '../src/visitantes/GeradorRelatorio';
 import { ValidadorConsistencia } from '../src/visitantes/ValidadorConsistencia';
-import { criarProjeto, PRAZO, profissional, requisito } from './fixtures';
+import { criarProjeto, PRAZO, profissional, servico, servicos } from './fixtures';
 
 const base = { nome: 'Projeto', produtor: 'produtora@exemplo.com' };
 
@@ -154,7 +154,7 @@ describe('Recomendadores das famílias', () => {
   const primeiro = (estrategia: RecomendacaoStrategy, projeto: Projeto, candidatos: Profissional[], papel: Papel) =>
     estrategia.recomendar(projeto, candidatos).get(papel)?.[0]?.id;
   const comPapel = (orcamento: number, ...competencias: [string, number][]) => (papel: Papel) =>
-    criarProjeto({ papeis: [requisito(papel, 1, ...competencias)], restricoes: { orcamento, prazo: PRAZO, localizacao: 'SP' } });
+    criarProjeto({ servicoPrincipal: servicos(servico(papel, 1, ...competencias)), restricoes: { orcamento, prazo: PRAZO, localizacao: 'SP' } });
 
   it('documentário valoriza experiência em documentário', () => {
     const projeto = comPapel(100_000, ['narrativa', 8])(Papel.DIRETOR);

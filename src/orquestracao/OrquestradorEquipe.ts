@@ -1,10 +1,10 @@
+import type { AdaptadorProfissional } from '../adaptadores/profissionais/AdaptadorProfissional';
 import { Equipe, MembroEquipe, type Recomendacoes } from '../dominio/Equipe';
 import type { Papel } from '../dominio/Papel';
 import type { Profissional } from '../dominio/Profissional';
 import type { Projeto } from '../dominio/Projeto';
 import type { RecomendacaoStrategy } from '../estrategias/RecomendacaoStrategy';
 import type { FabricaProjeto } from '../fabricas/FabricaProjeto';
-import type { RepositorioProfissionais } from '../repositorio/RepositorioProfissionais';
 
 export class ProjetoInvalidoError extends Error {
   constructor(
@@ -31,7 +31,7 @@ export interface OpcoesOrquestracao {
 export abstract class OrquestradorEquipe {
   constructor(
     protected readonly fabrica: FabricaProjeto,
-    protected readonly repositorio: RepositorioProfissionais,
+    protected readonly profissionais: AdaptadorProfissional,
   ) {}
 
   /** Sem estratégia, usa o recomendador da família. */
@@ -43,7 +43,8 @@ export abstract class OrquestradorEquipe {
     if (!this.validarRestricoes(projeto)) throw new ProjetoInvalidoError(projeto);
 
     const excluidos = new Set(opcoes.excluir ?? []);
-    const cadastrados = (await this.repositorio.listar()).filter((p) => !excluidos.has(p.id));
+    const papeis = projeto.papeis.map((r) => r.papel);
+    const cadastrados = (await this.profissionais.listarProfissionais({ papeis })).filter((p) => !excluidos.has(p.id));
     const candidatos = this.normalizarDados(projeto, cadastrados);
 
     let recomendacoes = estrategia.recomendar(projeto, candidatos);

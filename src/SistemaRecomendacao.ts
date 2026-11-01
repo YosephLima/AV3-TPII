@@ -1,3 +1,8 @@
+import type { AdaptadorArmazenamento } from './adaptadores/armazenamento/AdaptadorArmazenamento';
+import type { AdaptadorPagamento } from './adaptadores/pagamento/AdaptadorPagamento';
+import type { AdaptadorProfissional } from './adaptadores/profissionais/AdaptadorProfissional';
+import { ArquivoRecomendacoes, type RecomendacaoArquivada } from './contratacao/ArquivoRecomendacoes';
+import { PagamentoEquipe } from './contratacao/PagamentoEquipe';
 import type { Equipe, MembroEquipe } from './dominio/Equipe';
 import type { Papel } from './dominio/Papel';
 import type { Projeto } from './dominio/Projeto';
@@ -26,18 +31,60 @@ export interface Avaliacao {
   relatorio: string;
 }
 
-/** Ponto de entrada: escolhe a fábrica pelo tipo do projeto e usa os objetos dela em todo o fluxo. */
+export interface Adaptadores {
+  armazenamento: AdaptadorArmazenamento;
+  pagamento: AdaptadorPagamento;
+  profissional: AdaptadorProfissional;
+}
+
+export type CriarOrquestrador = (fabrica: FabricaProjeto, profissionais: AdaptadorProfissional) => OrquestradorEquipe;
+
+/** Envolve a estratégia escolhida (com decoradores, por exemplo). O sistema não sabe quais são. */
+export type DecorarEstrategia = (estrategia: RecomendacaoStrategy, projeto: Projeto) => RecomendacaoStrategy;
+
+/**
+ * Ponto de entrada: escolhe a fábrica pelo tipo do projeto e usa os objetos dela em todo o fluxo. Os
+ * sistemas externos chegam como adaptadores, então nada aqui depende de um provedor específico.
+ */
 export class SistemaRecomendacao {
   private static readonly ORIGEM = 'sistema-recomendacao';
 
   private readonly observadores: Observador[] = [];
   private estrategiaAtual: RecomendacaoStrategy | undefined;
+  private adaptadorArmazenamento: AdaptadorArmazenamento;
+  private adaptadorPagamento: AdaptadorPagamento;
+  private adaptadorProfissional: AdaptadorProfissional;
 
   constructor(
     private readonly fabricas: RegistroFabricas,
-    private readonly criarOrquestrador: (fabrica: FabricaProjeto) => OrquestradorEquipe,
+    private readonly criarOrquestrador: CriarOrquestrador,
+    adaptadores: Adaptadores,
     private readonly barramento: BarramentoEventos = new BarramentoEmMemoria(),
-  ) {}
+    private readonly decorar: DecorarEstrategia = (estrategia) => estrategia,
+  ) {
+    this.adaptadorArmazenamento = adaptadores.armazenamento;
+    this.adaptadorPagamento = adaptadores.pagamento;
+    this.adaptadorProfissional = adaptadores.profissional;
+  }
+
+  get adaptadores(): Adaptadores {
+    return {
+      armazenamento: this.adaptadorArmazenamento,
+      pagamento: this.adaptadorPagamento,
+      profissional: this.adaptadorProfissional,
+    };
+  }
+
+  /** Troca os provedores; vale a partir da próxima operação. */
+  configurarAdaptadores(
+    armazenamento: AdaptadorArmazenamento,
+    pagamento: AdaptadorPagamento,
+    profissional: AdaptadorProfissional,
+  ): void {
+    this.adaptadorArmazenamento = armazenamento;
+    this.adaptadorPagamento = pagamento;
+    this.adaptadorProfissional = profissional;
+  }
 
   /** Vale para todos os projetos, menos os que já vieram com estratégia própria. */
   definirEstrategia(estrategia: RecomendacaoStrategy): void {
@@ -67,18 +114,22 @@ export class SistemaRecomendacao {
   }
 
   async executarRecomendacao(projeto: Projeto): Promise<Equipe> {
-    const fabrica = this.fabricaDe(projeto);
-    const equipe = await this.criarOrquestrador(fabrica).orquestrar(projeto, this.estrategiaPara(projeto));
+    const equipe = await this.orquestrador(projeto).orquestrar(projeto, this.estrategiaPara(projeto));
     projeto.definirEquipe(equipe);
+    await new ArquivoRecomendacoes(this.adaptadorArmazenamento).guardar(projeto, equipe);
     this.notificar('recomendacao_gerada', projeto, equipe.membros);
     return equipe;
+  }
+
+  consultarRecomendacao(projetoId: string): Promise<RecomendacaoArquivada> {
+    return new ArquivoRecomendacoes(this.adaptadorArmazenamento).consultar(projetoId);
   }
 
   /** Refaz só o papel rejeitado; o resto da equipe fica igual. */
   async substituirMembro(projeto: Projeto, papel: Papel): Promise<MembroEquipe> {
     const equipe = this.equipeDe(projeto);
     const excluir = [...equipe.membros.map((m) => m.profissional.id), ...equipe.substituidos];
-    const rodada = await this.criarOrquestrador(this.fabricaDe(projeto)).orquestrar(projeto, this.estrategiaPara(projeto), {
+    const rodada = await this.orquestrador(projeto).orquestrar(projeto, this.estrategiaPara(projeto), {
       papeis: [papel],
       excluir,
     });
@@ -92,7 +143,7 @@ export class SistemaRecomendacao {
     return novo;
   }
 
-  /** Se o profissional recusar, já busca outro para o papel. */
+  /** Se o profissional recusar, já busca outro para o papel. Com todos confirmados, a equipe é paga. */
   async responderConvite(projeto: Projeto, papel: Papel, aceito: boolean): Promise<void> {
     const equipe = this.equipeDe(projeto);
     const membro = equipe.membro(papel);
@@ -106,12 +157,16 @@ export class SistemaRecomendacao {
 
     projeto.aceitarRecomendacao(papel, membro.profissional);
     this.notificar('convite_aceito', projeto, [membro]);
-    if (equipe.status === 'formada') this.notificar('equipe_formada', projeto, equipe.membros);
+    if (equipe.status === 'formada') {
+      await new PagamentoEquipe(this.adaptadorPagamento).pagar(projeto, equipe);
+      this.notificar('equipe_formada', projeto, equipe.membros);
+    }
   }
 
-  /** Para mudanças grandes de orçamento ou prazo. */
+  /** Para mudanças grandes de orçamento ou prazo. O que já foi pago à equipe anterior é estornado. */
   async reavaliar(projeto: Projeto): Promise<Equipe> {
     this.notificar('reavaliacao_solicitada', projeto, projeto.equipe?.membros ?? []);
+    if (projeto.equipe) await new PagamentoEquipe(this.adaptadorPagamento).estornar(projeto.equipe);
     projeto.solicitarReavaliacao();
     return this.executarRecomendacao(projeto);
   }
@@ -128,7 +183,12 @@ export class SistemaRecomendacao {
   }
 
   estrategiaPara(projeto: Projeto): RecomendacaoStrategy {
-    return projeto.estrategia ?? this.estrategiaAtual ?? this.fabricaDe(projeto).criarRecomendador();
+    const escolhida = projeto.estrategia ?? this.estrategiaAtual ?? this.fabricaDe(projeto).criarRecomendador();
+    return this.decorar(escolhida, projeto);
+  }
+
+  private orquestrador(projeto: Projeto): OrquestradorEquipe {
+    return this.criarOrquestrador(this.fabricaDe(projeto), this.adaptadorProfissional);
   }
 
   private fabricaDe(projeto: Projeto): FabricaProjeto {

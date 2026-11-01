@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { profissionaisIniciais } from '../src/dados/profissionais';
+import { Avaliacao } from '../src/dominio/Avaliacao';
 import { Papel } from '../src/dominio/Papel';
 import { RepositorioComReserva } from '../src/repositorio/RepositorioComReserva';
 import { RepositorioProfissionaisMemoria, type RepositorioProfissionais } from '../src/repositorio/RepositorioProfissionais';
@@ -35,13 +36,23 @@ describe('Repositórios de profissionais', () => {
 
   it('usa o cadastro reserva quando o principal falha', async () => {
     const aoFalhar = vi.fn();
-    const foraDoAr: RepositorioProfissionais = { listar: () => Promise.reject(new Error('conexão recusada')) };
+    const recusar = () => Promise.reject(new Error('conexão recusada'));
+    const foraDoAr: RepositorioProfissionais = { listar: recusar, registrarAvaliacao: recusar };
     const reserva = new RepositorioProfissionaisMemoria(profissionaisIniciais());
+    const comReserva = new RepositorioComReserva(foraDoAr, reserva, aoFalhar);
 
-    const profissionais = await new RepositorioComReserva(foraDoAr, reserva, aoFalhar).listar();
+    expect(await comReserva.listar()).toHaveLength(16);
+    await comReserva.registrarAvaliacao('p06', new Avaliacao(5, 'ótimo', new Date()));
 
-    expect(profissionais).toHaveLength(16);
-    expect(aoFalhar).toHaveBeenCalledOnce();
+    expect((await reserva.listar()).find((p) => p.id === 'p06')?.notaMedia()).toBe(5);
+    expect(aoFalhar).toHaveBeenCalledTimes(2);
+  });
+
+  it('grava a avaliação no PostgreSQL', async () => {
+    const create = vi.fn().mockResolvedValue({});
+    const data = new Date('2026-11-01');
+    await new RepositorioProfissionaisPostgres({ avaliacao: { create } } as never).registrarAvaliacao('p01', new Avaliacao(4, 'pontual', data));
+    expect(create).toHaveBeenCalledWith({ data: { profissionalId: 'p01', nota: 4, comentario: 'pontual', data } });
   });
 
   it('sem DATABASE_URL o cadastro fica só em memória', async () => {

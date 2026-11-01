@@ -1,16 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import type { RecomendacaoStrategy } from '../estrategias/RecomendacaoStrategy';
 import type { VisitanteProjeto } from '../visitantes/VisitanteProjeto';
+import type { ServicoProjeto } from '../servicos/ServicoProjeto';
 import { Competencia } from './Competencia';
 import type { Equipe } from './Equipe';
 import type { Papel } from './Papel';
 import type { Profissional } from './Profissional';
 
-
-/** Papel exigido e o peso dele para o sucesso da obra. */
+/**
+ * O que o projeto pede de um papel, resumido das folhas da árvore de serviços: o custo somado dos serviços
+ * do papel e o maior nível pedido de cada competência.
+ */
 export interface RequisitoPapel {
   papel: Papel;
-  peso: number;
+  custo: number;
   competenciasDesejadas: Competencia[];
 }
 
@@ -26,9 +29,11 @@ export interface DadosProjeto {
   produtor: string;
   genero: string;
   duracao: number;
-  papeis: RequisitoPapel[];
+  servicoPrincipal: ServicoProjeto;
   restricoes: Restricoes;
   estrategia?: RecomendacaoStrategy;
+  /** Preferência do produtor para a pilha de decoradores (de fora para dentro). */
+  decoradores?: string[];
 }
 
 /** As restrições podem ser ajustadas campo a campo. */
@@ -43,10 +48,12 @@ export abstract class Projeto {
   readonly genero: string;
   /** Em minutos. */
   readonly duracao: number;
-  readonly papeis: RequisitoPapel[];
+  /** Composite: substitui a antiga lista de papéis. */
+  readonly servicoPrincipal: ServicoProjeto;
   readonly restricoes: Restricoes;
   /** Definida pelo produtor na criação, se ele quiser. */
   readonly estrategia: RecomendacaoStrategy | undefined;
+  readonly decoradores: string[] | undefined;
   private _equipe: Equipe | undefined;
 
   constructor(dados: DadosProjeto) {
@@ -55,9 +62,10 @@ export abstract class Projeto {
     this.produtor = dados.produtor;
     this.genero = dados.genero;
     this.duracao = dados.duracao;
-    this.papeis = dados.papeis;
+    this.servicoPrincipal = dados.servicoPrincipal;
     this.restricoes = dados.restricoes;
     this.estrategia = dados.estrategia;
+    this.decoradores = dados.decoradores;
   }
 
   /** Prototype: cópia profunda da mesma subclasse. O clone ganha outro id e vem sem equipe. */
@@ -75,15 +83,59 @@ export abstract class Projeto {
     return this._equipe;
   }
 
+  /** Um requisito por papel, na ordem em que o papel aparece pela primeira vez na árvore. */
+  get papeis(): RequisitoPapel[] {
+    const porPapel = new Map<Papel, { custo: number; niveis: Map<string, number> }>();
+    for (const servico of this.servicoPrincipal.servicosAtomicos()) {
+      const atual = porPapel.get(servico.papelNecessario) ?? { custo: 0, niveis: new Map<string, number>() };
+      atual.custo += servico.custoBase;
+      for (const { nome, nivel } of servico.competenciasDesejadas) {
+        atual.niveis.set(nome, Math.max(nivel, atual.niveis.get(nome) ?? 0));
+      }
+      porPapel.set(servico.papelNecessario, atual);
+    }
+    return [...porPapel].map(([papel, { custo, niveis }]) => ({
+      papel,
+      custo,
+      competenciasDesejadas: [...niveis].map(([nome, nivel]) => new Competencia(nome, nivel)),
+    }));
+  }
+
   requisito(papel: Papel): RequisitoPapel | undefined {
     return this.papeis.find((r) => r.papel === papel);
   }
 
-  /** Fatia do orçamento proporcional ao peso do papel. */
+  /** Custo estimado dos serviços; a árvore faz a soma. */
+  calcularCustoTotal(): number {
+    return this.servicoPrincipal.calcularCusto();
+  }
+
+  /** Fatia do orçamento proporcional ao custo dos serviços do papel. */
   tetoPorPapel(papel: Papel): number {
-    const pesoTotal = this.papeis.reduce((soma, r) => soma + r.peso, 0);
-    const peso = this.requisito(papel)?.peso ?? 0;
-    return pesoTotal === 0 ? 0 : (this.orcamento * peso) / pesoTotal;
+    const custoTotal = this.calcularCustoTotal();
+    const custo = this.requisito(papel)?.custo ?? 0;
+    return custoTotal === 0 ? 0 : (this.orcamento * custo) / custoTotal;
+  }
+
+  validarEstrutura(): boolean {
+    return this.problemasEstrutura().length === 0;
+  }
+
+  /** Valida a árvore inteira e confere prazos e custos contra a entrega e o orçamento. */
+  problemasEstrutura(): string[] {
+    const problemas = this.servicoPrincipal.problemas();
+    const atomicos = this.servicoPrincipal.servicosAtomicos();
+    const repetidos = new Set(atomicos.filter((s, i) => atomicos.indexOf(s) !== i));
+    for (const servico of repetidos) problemas.push(`O serviço ${servico.nome} aparece mais de uma vez`);
+
+    for (const servico of atomicos) {
+      if (servico.prazoBase > this.prazo) problemas.push(`O serviço ${servico.nome} termina depois da entrega`);
+    }
+    const custo = this.calcularCustoTotal();
+    if (custo > this.orcamento) {
+      problemas.push(`Custo estimado dos serviços (${custo}) excede o orçamento (${this.orcamento})`);
+    }
+    return problemas;
   }
 
   definirEquipe(equipe: Equipe): void {
@@ -114,22 +166,28 @@ export abstract class Projeto {
     return visitante.visitarProjeto(this);
   }
 
-  /** Copia papéis, competências e restrições sem compartilhar referências. */
+  /**
+   * Copia a árvore de serviços e as restrições sem compartilhar referências. Se só a entrega mudar, os
+   * prazos dos serviços acompanham a nova data.
+   */
   protected dadosClonados(ajustes: AjustesProjeto): DadosProjeto {
+    const prazo = new Date(ajustes.restricoes?.prazo ?? this.prazo);
+    const deslocamento = prazo.getTime() - this.prazo.getTime();
     return {
       id: ajustes.id,
       nome: ajustes.nome ?? this.nome,
       produtor: ajustes.produtor ?? this.produtor,
       genero: ajustes.genero ?? this.genero,
       duracao: ajustes.duracao ?? this.duracao,
-      papeis: (ajustes.papeis ?? this.papeis).map(copiarRequisito),
+      servicoPrincipal: ajustes.servicoPrincipal?.clonar() ?? this.servicoPrincipal.clonar(deslocamento),
       restricoes: {
         orcamento: ajustes.restricoes?.orcamento ?? this.orcamento,
-        prazo: new Date(ajustes.restricoes?.prazo ?? this.prazo),
+        prazo,
         localizacao: ajustes.restricoes?.localizacao ?? this.restricoes.localizacao,
       },
       // Estratégias não guardam estado, então podem ser compartilhadas entre clones.
       estrategia: ajustes.estrategia ?? this.estrategia,
+      decoradores: (ajustes.decoradores ?? this.decoradores)?.slice(),
     };
   }
 
@@ -137,12 +195,4 @@ export abstract class Projeto {
     if (!this._equipe) throw new Error(`O projeto ${this.nome} ainda não tem equipe recomendada`);
     return this._equipe;
   }
-}
-
-function copiarRequisito(requisito: RequisitoPapel): RequisitoPapel {
-  return {
-    papel: requisito.papel,
-    peso: requisito.peso,
-    competenciasDesejadas: requisito.competenciasDesejadas.map((c) => new Competencia(c.nome, c.nivel)),
-  };
 }
